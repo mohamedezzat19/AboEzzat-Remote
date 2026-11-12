@@ -61,4 +61,45 @@ class NecCandidateEncoderTest {
         )
         assert(NecCandidateEncoder.JVC_RC_EZ38S_CANDIDATES.all { it.note.contains("Unverified") })
     }
+    @Test
+    fun jvcEncoderProducesSixteenBitFrameWithJvcTimings() {
+        val pattern = JvcProtocolEncoder.encode(address = 0, command = 0)
+
+        assertEquals(36, pattern.size)
+        assertEquals(8_440, pattern[0])
+        assertEquals(4_220, pattern[1])
+        assertEquals(527, pattern[2])
+        assertEquals(1_055, pattern[3])
+        assertEquals(527, pattern[34])
+        assertEquals(42_000, pattern[35])
+        assertEquals(37_900, JvcProtocolEncoder.CARRIER_FREQUENCY_HZ)
+    }
+
+    @Test
+    fun jvcEncoderSendsAddressThenCommandLeastSignificantBitFirst() {
+        val pattern = JvcProtocolEncoder.encode(address = 1, command = 2)
+
+        // Address 0x01: its least-significant bit is the first transmitted bit.
+        assertEquals(527, pattern[2])
+        assertEquals(2_110, pattern[3])
+        assertEquals(527, pattern[4])
+        assertEquals(1_055, pattern[5])
+
+        // Command 0x02 begins after the eight address bits.
+        assertEquals(527, pattern[18])
+        assertEquals(1_055, pattern[19])
+        assertEquals(527, pattern[20])
+        assertEquals(2_110, pattern[21])
+    }
+
+    @Test
+    fun jvcEncoderRejectsAddressAndCommandOutsideByteRange() {
+        assertThrows(IllegalArgumentException::class.java) {
+            JvcProtocolEncoder.encode(address = -1, command = 0)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            JvcProtocolEncoder.encode(address = 0, command = 256)
+        }
+    }
+
 }
