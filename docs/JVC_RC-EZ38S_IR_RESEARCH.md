@@ -27,6 +27,11 @@
 12. The service manual's schematic text extraction contains no searchable IR / remote-sensor label, and the block diagram alone is not sufficient to infer the remote signal address or function bytes. The user manual independently confirms that the main unit has a remote sensor section and that the RM-SRCEZ38A remote operates it from up to approximately 7 m.
 13. A further exact-model search of indexed sources for EM78P156E / TCC760 did not surface an RC-EZ38S firmware image, source listing, or RM-SRCEZ38A command table. This remains an evidence gap, not proof that no such material exists elsewhere.
 
+
+14. A closer read of the service manual's control-circuit schematic gives a more useful clue than the block diagram: the TCC760 CPU connection list explicitly labels signal A14 as `A14_REMOTE` (service manual schematic page 8 in the PDF extraction). This is direct evidence that the remote signal is routed to the TCC760 CPU input, but the schematic still does not document the decoded custom/data bytes or a per-button table.
+15. The same schematic labels B4 as `B4_P CON(EM78P156E)`; this is a separate control connection and must not be mistaken for the IR input. The EM78P156E datasheet describes a general 8-bit OTP microcontroller with 1K×13-bit OTP ROM and a protection bit. This makes the chip's programmed contents potentially protected, but there is no evidence in the service manual that it contains the remote decoder or command table.
+16. The service manual states that no service parts are available and the service policy is one-to-one exchange. That explains why it contains circuit diagrams but no detailed remote-command service data.
+
 ## Decision
 
 - Keep `carrierFrequencyHz: 37900` as protocol reference metadata only.
@@ -39,7 +44,8 @@
 - JVC RC-EZ38S instruction manual, remote control unit: https://www.manualslib.com/manual/2539971/Jvc-Rc-Ez38s.html?page=9
 - Official JVC physical specification for infrared remote control: https://support.jvc.com/consumer/support/documents/RemoteCodes.pdf
 - Official JVC RC-EZ38 archived product page: https://support.jvc.com/consumer/product.jsp?archive=true&modelId=MODL027840&page=2&pathId=36
-- JVC RC-EZ38S service manual No. 28228 (October 2006), including block diagram and schematics: https://device.report/m/b6788c5b128600907d1837655f2d68e0e75951e3c839a7304e01d9943959d716.pdf
+- JVC RC-EZ38S service manual No. 28228 (October 2006), including block diagram, control-circuit schematic, and one-to-one service policy: https://device.report/m/b6788c5b128600907d1837655f2d68e0e75951e3c839a7304e01d9943959d716.pdf
+- EM78P156E datasheet (8-bit OTP microcontroller and protection bit): https://win.adrirobot.it/datasheet/processori/pdf/EM78P156E.pdf
 - JVC RC-EZ38S user manual, confirming remote sensor section and approximate 7 m operating distance: https://www.manualslib.com/manual/2539971/Jvc-Rc-Ez38s.html?page=9
 - JVC RC-EZ35S manual showing a different remote model RM-SRCEZ35J: https://www.manualslib.com/manual/83100/Jvc-Rc-Ez35s.html
 - Flipper-IRDB project: https://github.com/joshakabulldog/Flipper-IRDB
