@@ -4,8 +4,11 @@ import android.app.Activity
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
+import java.io.ByteArrayOutputStream
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -21,6 +24,11 @@ class MainActivity : Activity() {
     private lateinit var root: LinearLayout
     private lateinit var irTransmitter: InfraredTransmitter
     private lateinit var profileRepository: RemoteProfileRepository
+
+    companion object {
+        private const val REQUEST_IMPORT_PROFILE = 4102
+        private const val MAX_IMPORT_BYTES = 512 * 1024
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -136,9 +144,153 @@ class MainActivity : Activity() {
         card("المسجلات والراديو", "CD • USB • Cassette • FM", "♫") { showJvc() }
         card("أنظمة الصوت", "مكبرات الصوت وأجهزة الاستريو", "◖))") { comingSoon("أنظمة الصوت") }
         card("أجهزتي المخصصة", "إضافة موديلات وريموتات جديدة", "+") { comingSoon("إضافة جهاز") }
+        card("استيراد ريموت من ملف", "اختيار ملف JSON من الهاتف", "⇧") { pickRemoteProfile() }
+        val importedCount = profileRepository.listImportedProfiles().size
+        card("ريموتاتي المستوردة", "$importedCount ريموت محفوظ داخل التطبيق", "⌁") { showImportedProfiles() }
 
         val footer = text("الإصدار 1.0.0  •  منصة ريموتات قابلة للتوسع", 11f, muted)
         root.addView(footer, LinearLayout.LayoutParams(-1, dp(52)))
+        setContentView(scroll)
+    }
+
+
+    private fun pickRemoteProfile() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/json", "text/json", "text/plain"))
+        }
+        try {
+            startActivityForResult(
+                Intent.createChooser(intent, "اختيار ملف ريموت JSON"),
+                REQUEST_IMPORT_PROFILE
+            )
+        } catch (error: Exception) {
+            Toast.makeText(this, "تعذر فتح مدير الملفات: ${error.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    @Deprecated("Deprecated in Android API")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_IMPORT_PROFILE || resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        try {
+            val json = readLimitedText(uri)
+            val imported = profileRepository.importProfile(json)
+            Toast.makeText(
+                this,
+                "تم استيراد ${imported.displayName} وحفظه كملف غير موثّق الأوامر",
+                Toast.LENGTH_LONG
+            ).show()
+            showHome()
+        } catch (error: Exception) {
+            Toast.makeText(
+                this,
+                "لم يتم استيراد الملف: ${error.message ?: "ملف غير صالح"}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun readLimitedText(uri: Uri): String {
+        val input = contentResolver.openInputStream(uri)
+            ?: throw IllegalArgumentException("تعذر قراءة الملف المحدد")
+        input.use { stream ->
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            var total = 0
+            while (true) {
+                val count = stream.read(buffer)
+                if (count < 0) break
+                total += count
+                require(total <= MAX_IMPORT_BYTES) { "حجم الملف أكبر من 512 كيلوبايت" }
+                output.write(buffer, 0, count)
+            }
+            return output.toString(Charsets.UTF_8.name())
+        }
+    }
+
+    private fun showImportedProfiles() {
+        showingJvc = false
+        val profiles = profileRepository.listImportedProfiles()
+        val scroll = baseScreen()
+        val back = Button(this).apply {
+            text = "‹   الرئيسية"
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
+            setOnClickListener { showHome() }
+        }
+        root.addView(back, LinearLayout.LayoutParams(-2, dp(48)))
+        heading("ريموتاتي المستوردة", "ملفات محفوظة داخل أبو عزت ريموت")
+        if (profiles.isEmpty()) {
+            root.addView(
+                text("لسه ما استوردتش أي ريموت. اختار ملف JSON من الصفحة الرئيسية لإضافته هنا.", 14f, muted),
+                LinearLayout.LayoutParams(-1, -2)
+            )
+        } else {
+            profiles.forEach { profile ->
+                card(profile.displayName, "${profile.brand} • ${profile.model}", "⌁") {
+                    showImportedProfile(profile.id)
+                }
+            }
+        }
+        setContentView(scroll)
+    }
+
+    private fun showImportedProfile(id: String) {
+        val profile = try {
+            profileRepository.loadImportedProfile(id)
+        } catch (error: Exception) {
+            Toast.makeText(this, "تعذر فتح الريموت: ${error.message}", Toast.LENGTH_LONG).show()
+            showImportedProfiles()
+            return
+        }
+        showingJvc = false
+        val scroll = baseScreen()
+        val back = Button(this).apply {
+            text = "‹   ريموتاتي"
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
+            setOnClickListener { showImportedProfiles() }
+        }
+        root.addView(back, LinearLayout.LayoutParams(-2, dp(48)))
+        heading(profile.displayName, "${profile.brand} • ${profile.model}")
+
+        val remote = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(18), dp(18), dp(18), dp(20))
+            background = background(Color.rgb(37, 43, 55), 30f)
+        }
+        val brand = text(profile.brand.uppercase(), 22f, Color.WHITE, true)
+        brand.gravity = Gravity.CENTER
+        remote.addView(brand, LinearLayout.LayoutParams(-1, dp(48)))
+        val display = TextView(this).apply {
+            text = profile.displayName
+            textSize = 12f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(165, 205, 190))
+            background = background(Color.rgb(15, 23, 28), 10f)
+        }
+        val displayParams = LinearLayout.LayoutParams(-1, dp(58))
+        displayParams.topMargin = dp(8)
+        displayParams.bottomMargin = dp(12)
+        remote.addView(display, displayParams)
+
+        profile.buttons.map { it.group }.distinct().forEach { group ->
+            val columns = if (group == "numeric" || group == "navigation") 3 else 2
+            addButtonGroup(remote, profile, group, columns)
+        }
+        root.addView(remote, LinearLayout.LayoutParams(-1, -2))
+        val note = text(
+            "هذا ريموت مستورد. جميع أوامر IR تم تعطيل التحقق منها تلقائيًا؛ لن يتم إرسال أي أمر حتى يُختبر ويُعتمد بشكل مستقل.",
+            12f,
+            muted
+        )
+        val noteParams = LinearLayout.LayoutParams(-1, -2)
+        noteParams.topMargin = dp(16)
+        root.addView(note, noteParams)
         setContentView(scroll)
     }
 
