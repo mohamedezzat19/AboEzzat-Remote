@@ -138,6 +138,41 @@ class ImportedProfileStore(context: Context) {
         return RemoteProfileParser.parse(root.toString())
     }
 
+    fun moveButton(id: String, buttonId: String, direction: Int): RemoteProfile {
+        require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
+        require(direction == -1 || direction == 1) { "اتجاه الترتيب غير صالح" }
+        val file = profileFile(id)
+        require(file.isFile) { "ملف الريموت غير موجود" }
+        val root = JSONObject(file.readText(Charsets.UTF_8))
+        val buttons = root.getJSONArray("buttons")
+        val currentIndex = (0 until buttons.length()).firstOrNull {
+            buttons.getJSONObject(it).optString("id") == buttonId
+        } ?: throw IllegalArgumentException("الزر غير موجود")
+        val current = buttons.getJSONObject(currentIndex)
+        val group = current.optString("group", "other")
+        val groupIndexes = (0 until buttons.length()).filter {
+            buttons.getJSONObject(it).optString("group", "other") == group
+        }
+        val groupPosition = groupIndexes.indexOf(currentIndex)
+        val targetPosition = groupPosition + direction
+        require(targetPosition in groupIndexes.indices) { "وصلت إلى نهاية المجموعة" }
+        val targetIndex = groupIndexes[targetPosition]
+        val target = buttons.getJSONObject(targetIndex)
+        buttons.put(currentIndex, target)
+        buttons.put(targetIndex, current)
+        root.put("verification", "imported_unverified")
+        val commands = root.optJSONObject("commands") ?: JSONObject()
+        val keys = commands.keys()
+        while (keys.hasNext()) commands.getJSONObject(keys.next()).put("verified", false)
+        val temporary = File(directory, "$id.json.tmp")
+        temporary.writeText(root.toString(2), Charsets.UTF_8)
+        if (!temporary.renameTo(file)) {
+            temporary.delete()
+            throw IllegalStateException("تعذر حفظ ترتيب الأزرار")
+        }
+        return RemoteProfileParser.parse(root.toString())
+    }
+
     fun delete(id: String): Boolean {
         require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
         val file = profileFile(id)
