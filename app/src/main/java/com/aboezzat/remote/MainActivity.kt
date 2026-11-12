@@ -27,6 +27,7 @@ class MainActivity : Activity() {
 
     companion object {
         private const val REQUEST_IMPORT_PROFILE = 4102
+        private const val REQUEST_EXPORT_PROFILE = 4103
         private const val MAX_IMPORT_BYTES = 512 * 1024
     }
 
