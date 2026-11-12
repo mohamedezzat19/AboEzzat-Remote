@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "devices": [
+    {
+      "id": "jvc-rc-ez38s",
+      "brand": "JVC",
+      "model": "RC-EZ38S",
+      "category": "audio",
+      "displayName": "JVC RC-EZ38S",
+      "controlMethod": "infrared",
+      "remoteLayout": "jvc_rc_ez38s",
+      "commands": {},
+      "verification": "pending"
+    }
+  ]
+}
