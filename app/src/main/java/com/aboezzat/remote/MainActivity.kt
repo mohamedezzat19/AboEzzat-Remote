@@ -463,6 +463,15 @@ class MainActivity : Activity() {
             keyParams.setMargins(dp(3), dp(3), dp(6), dp(3))
             row.addView(key, keyParams)
 
+            val edit = Button(this).apply {
+                text = "✎"
+                textSize = 15f
+                isAllCaps = false
+                setTextColor(Color.WHITE)
+                background = background(Color.rgb(47, 67, 91), 12f)
+                contentDescription = "تعديل اسم الزر"
+                setOnClickListener { renameImportedButton(profile.id, button.id) }
+            }
             val up = Button(this).apply {
                 text = "↑"
                 textSize = 16f
@@ -483,12 +492,43 @@ class MainActivity : Activity() {
                 alpha = if (isEnabled) 1f else 0.35f
                 setOnClickListener { reorderImportedButton(profile.id, button.id, 1) }
             }
-            row.addView(up, LinearLayout.LayoutParams(dp(48), dp(44)))
-            val downParams = LinearLayout.LayoutParams(dp(48), dp(44))
+            row.addView(edit, LinearLayout.LayoutParams(dp(44), dp(44)))
+            row.addView(up, LinearLayout.LayoutParams(dp(44), dp(44)))
+            val downParams = LinearLayout.LayoutParams(dp(44), dp(44))
             downParams.leftMargin = dp(5)
             row.addView(down, downParams)
             parent.addView(row, LinearLayout.LayoutParams(-1, -2))
         }
+    }
+
+    private fun renameImportedButton(id: String, buttonId: String) {
+        val profile = runCatching { profileRepository.loadImportedProfile(id) }.getOrElse {
+            Toast.makeText(this, "تعذر تحميل الريموت: ${it.message}", Toast.LENGTH_LONG).show()
+            return
+        }
+        val button = profile.buttons.firstOrNull { it.id == buttonId } ?: return
+        val field = EditText(this).apply {
+            setText(button.label)
+            setSelection(text.length)
+            hint = "اسم الزر"
+            setSingleLine(true)
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+        }
+        AlertDialog.Builder(this)
+            .setTitle("تعديل اسم الزر")
+            .setMessage("التغيير يؤثر على اسم الزر الظاهر فقط، ولا يغيّر كود الأشعة تحت الحمراء.")
+            .setView(field)
+            .setNegativeButton("إلغاء", null)
+            .setPositiveButton("حفظ") { _, _ ->
+                try {
+                    val updated = profileRepository.renameImportedButton(id, buttonId, field.text.toString())
+                    showImportedProfile(updated.id)
+                    Toast.makeText(this, "تم حفظ اسم الزر", Toast.LENGTH_SHORT).show()
+                } catch (error: Exception) {
+                    Toast.makeText(this, "تعذر حفظ الاسم: ${error.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+            .show()
     }
 
     private fun renameImportedGroup(id: String, group: String) {
