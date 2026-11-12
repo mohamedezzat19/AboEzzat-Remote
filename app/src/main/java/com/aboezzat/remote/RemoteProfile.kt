@@ -9,7 +9,10 @@ data class RemoteButtonProfile(
     val group: String,
     val carrierFrequencyHz: Int?,
     val patternMicros: IntArray?,
-    val verified: Boolean
+    val verified: Boolean,
+    val buttonColor: String = "slate",
+    val buttonShape: String = "rounded",
+    val buttonSize: String = "medium"
 )
 
 data class RemoteProfile(
@@ -44,7 +47,13 @@ object RemoteProfileParser {
                         group = item.optString("group", "other"),
                         carrierFrequencyHz = command?.optInt("carrierFrequencyHz", defaultFrequency),
                         patternMicros = pattern,
-                        verified = command?.optBoolean("verified", false) == true
+                        verified = command?.optBoolean("verified", false) == true,
+                        buttonColor = item.optString("buttonColor", "slate")
+                            .takeIf { it in setOf("slate", "blue", "green", "red", "purple", "amber") } ?: "slate",
+                        buttonShape = item.optString("buttonShape", "rounded")
+                            .takeIf { it in setOf("rounded", "pill", "square") } ?: "rounded",
+                        buttonSize = item.optString("buttonSize", "medium")
+                            .takeIf { it in setOf("small", "medium", "large") } ?: "medium"
                     )
                 )
             }
