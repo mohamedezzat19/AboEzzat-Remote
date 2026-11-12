@@ -2,13 +2,11 @@ package com.aboezzat.remote
 
 import android.app.Activity
 import android.content.Context
-import android.hardware.ConsumerIrManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
-import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -22,11 +20,13 @@ class MainActivity : Activity() {
     private val muted = Color.rgb(158, 174, 199)
     private var showingJvc = false
     private lateinit var root: LinearLayout
-    private var irManager: ConsumerIrManager? = null
+    private lateinit var irTransmitter: InfraredTransmitter
+    private lateinit var profileRepository: RemoteProfileRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        irManager = getSystemService(Context.CONSUMER_IR_SERVICE) as? ConsumerIrManager
+        irTransmitter = InfraredTransmitter(this)
+        profileRepository = RemoteProfileRepository(this)
         showHome()
     }
 
@@ -112,13 +112,13 @@ class MainActivity : Activity() {
         showingJvc = false
         val scroll = baseScreen()
         heading("أبو عزت ريموت", "كل أجهزتك في مكان واحد")
-        val status = if (irManager?.hasIrEmitter() == true)
-            "هذا الهاتف يحتوي على مرسل أشعة تحت الحمراء"
-        else "لم يتم اكتشاف مرسل IR في هذا الهاتف"
+        val hasIr = irTransmitter.isAvailable()
+        val status = if (hasIr) "تم اكتشاف مرسل أشعة تحت الحمراء في الهاتف"
+        else "لم يتم اكتشاف مرسل IR مدمج في هذا الهاتف"
         val statusCard = TextView(this).apply {
             text = "●  $status"
             textSize = 12f
-            setTextColor(if (irManager?.hasIrEmitter() == true) Color.rgb(112, 220, 165) else Color.rgb(255, 190, 100))
+            setTextColor(if (hasIr) Color.rgb(112, 220, 165) else Color.rgb(255, 190, 100))
             setPadding(dp(14), dp(14), dp(14), dp(14))
             background = background(panel, 16f)
         }
@@ -139,13 +139,20 @@ class MainActivity : Activity() {
         card("أجهزتي المخصصة", "إضافة موديلات وريموتات جديدة", "+") { comingSoon("إضافة جهاز") }
 
         val footer = text("الإصدار 1.0.0  •  منصة ريموتات قابلة للتوسع", 11f, muted)
-        val fp = LinearLayout.LayoutParams(-1, dp(52))
-        root.addView(footer, fp)
+        root.addView(footer, LinearLayout.LayoutParams(-1, dp(52)))
         setContentView(scroll)
     }
 
     private fun showJvc() {
         showingJvc = true
+        val profile = try {
+            profileRepository.loadJvcRcEz38s()
+        } catch (error: Exception) {
+            Toast.makeText(this, "تعذر تحميل ملف ريموت JVC: ${error.message}", Toast.LENGTH_LONG).show()
+            showHome()
+            return
+        }
+
         val scroll = baseScreen()
         val back = Button(this).apply {
             text = "‹   الأجهزة"
@@ -154,83 +161,110 @@ class MainActivity : Activity() {
             setOnClickListener { showHome() }
         }
         root.addView(back, LinearLayout.LayoutParams(-2, dp(48)))
-        heading("JVC RC-EZ38S", "ريموت المسجل • ملف الجهاز الأول")
+        heading(profile.displayName, "ريموت المسجل • ملف جهاز مستقل")
 
         val remote = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(18), dp(20), dp(18), dp(20))
+            setPadding(dp(18), dp(18), dp(18), dp(20))
             background = background(Color.rgb(37, 43, 55), 30f)
         }
-        val brand = text("JVC", 24f, Color.WHITE, true).apply { gravity = Gravity.CENTER }
-        remote.addView(brand, LinearLayout.LayoutParams(-1, dp(42)))
-        val screen = TextView(this).apply {
-            text = "RC-EZ38S\nREMOTE CONTROL"
+
+        val topRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val brand = text("JVC", 25f, Color.WHITE, true)
+        topRow.addView(brand, LinearLayout.LayoutParams(0, dp(48), 1f))
+        profile.buttons.firstOrNull { it.id == "power" }?.let {
+            topRow.addView(remoteKey(it, Color.rgb(130, 49, 57)), LinearLayout.LayoutParams(dp(58), dp(52)))
+        }
+        remote.addView(topRow)
+
+        val display = TextView(this).apply {
+            text = "JVC  •  RC-EZ38S\nAUDIO SYSTEM"
             textSize = 12f
             gravity = Gravity.CENTER
             setTextColor(Color.rgb(165, 205, 190))
             background = background(Color.rgb(15, 23, 28), 10f)
         }
-        val screenParams = LinearLayout.LayoutParams(-1, dp(72))
-        screenParams.topMargin = dp(8)
-        screenParams.bottomMargin = dp(18)
-        remote.addView(screen, screenParams)
+        val displayParams = LinearLayout.LayoutParams(-1, dp(68))
+        displayParams.topMargin = dp(10)
+        displayParams.bottomMargin = dp(16)
+        remote.addView(display, displayParams)
 
-        remoteButton(remote, "POWER", "power")
-        remoteButton(remote, "CD", "cd")
-        remoteButton(remote, "USB", "usb")
-        remoteButton(remote, "TUNER / BAND", "tuner")
-        remoteButton(remote, "TAPE", "tape")
-
-        val transport = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        listOf("⏮", "▶ / II", "■", "⏭").forEach { label ->
-            val b = Button(this).apply {
-                text = label
-                textSize = 12f
-                setTextColor(Color.WHITE)
-                background = background(Color.rgb(67, 79, 99), 18f)
-                isAllCaps = false
-                setOnClickListener { notProgrammed(label) }
-            }
-            val p = LinearLayout.LayoutParams(0, dp(54), 1f)
-            p.setMargins(dp(3), dp(8), dp(3), dp(8))
-            transport.addView(b, p)
-        }
-        remote.addView(transport)
-        remoteButton(remote, "VOLUME  −", "volume_down")
-        remoteButton(remote, "VOLUME  +", "volume_up")
-        remoteButton(remote, "REPEAT / PROGRAM", "repeat")
+        addButtonGroup(remote, profile, "source", 2)
+        addButtonGroup(remote, profile, "transport", 4)
+        addButtonGroup(remote, profile, "volume", 2)
+        addButtonGroup(remote, profile, "radio", 2)
+        addButtonGroup(remote, profile, "functions", 2)
 
         root.addView(remote, LinearLayout.LayoutParams(-1, -2))
-        val note = text(
-            "واجهة الريموت جاهزة كبداية. أكواد الإرسال الخاصة بهذا الموديل لم تُعتمد بعد؛ لن نرسل أكواداً تخمينية.",
-            12f, muted
-        )
+
+        val stateText = if (profile.verification.equals("verified", true))
+            "ملف الأوامر موثق"
+        else "ملف الأوامر قيد التحقق — الأزرار غير الموثقة لن ترسل إشارات"
+        val note = text(stateText, 12f, muted)
         val np = LinearLayout.LayoutParams(-1, -2)
         np.topMargin = dp(16)
         root.addView(note, np)
         setContentView(scroll)
     }
 
-    private fun remoteButton(parent: LinearLayout, label: String, command: String) {
-        val b = Button(this).apply {
-            text = label
-            textSize = 13f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = background(Color.rgb(67, 79, 99), 16f)
-            setOnClickListener { notProgrammed(command) }
+    private fun addButtonGroup(
+        parent: LinearLayout,
+        profile: RemoteProfile,
+        group: String,
+        columns: Int
+    ) {
+        val buttons = profile.buttons.filter { it.group == group }
+        if (buttons.isEmpty()) return
+        var index = 0
+        while (index < buttons.size) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+            repeat(columns) {
+                if (index < buttons.size) {
+                    val button = buttons[index++]
+                    val p = LinearLayout.LayoutParams(0, dp(if (group == "transport") 54 else 48), 1f)
+                    p.setMargins(dp(3), dp(4), dp(3), dp(4))
+                    row.addView(remoteKey(button), p)
+                } else {
+                    row.addView(TextView(this), LinearLayout.LayoutParams(0, dp(48), 1f))
+                }
+            }
+            parent.addView(row, LinearLayout.LayoutParams(-1, -2))
         }
-        val p = LinearLayout.LayoutParams(-1, dp(48))
-        p.topMargin = dp(5)
-        parent.addView(b, p)
     }
 
-    private fun notProgrammed(command: String) {
-        Toast.makeText(this, "زر $command: كود IR الموثوق غير مضاف بعد", Toast.LENGTH_SHORT).show()
+    private fun remoteKey(
+        button: RemoteButtonProfile,
+        color: Int = Color.rgb(67, 79, 99)
+    ): Button = Button(this).apply {
+        text = button.label
+        contentDescription = button.description
+        textSize = if (button.label.length > 7) 10f else 14f
+        isAllCaps = false
+        setTextColor(Color.WHITE)
+        background = background(color, 16f)
+        setOnClickListener { sendRemoteButton(button) }
+    }
+
+    private fun sendRemoteButton(button: RemoteButtonProfile) {
+        if (!button.verified || button.carrierFrequencyHz == null || button.patternMicros == null) {
+            Toast.makeText(this, "${button.description}: كود IR موثوق غير متوفر لهذا الزر بعد", Toast.LENGTH_SHORT).show()
+            return
+        }
+        irTransmitter.send(button.carrierFrequencyHz, button.patternMicros).fold(
+            onSuccess = {
+                Toast.makeText(this, "تم إرسال أمر ${button.description}", Toast.LENGTH_SHORT).show()
+            },
+            onFailure = { error ->
+                Toast.makeText(this, "تعذر إرسال الأمر: ${error.message}", Toast.LENGTH_LONG).show()
+            }
+        )
     }
 
     private fun comingSoon(category: String) {
