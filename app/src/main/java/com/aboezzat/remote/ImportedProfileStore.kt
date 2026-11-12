@@ -193,7 +193,7 @@ class ImportedProfileStore(context: Context) {
             }
         }
         require(changed) { "المجموعة غير موجودة" }
-        saveUnverifiedProfile(id, file, root, "تعذر حفظ اسم المجموعة")
+        return saveUnverifiedProfile(id, file, root, "تعذر حفظ اسم المجموعة")
     }
 
     fun moveGroup(id: String, group: String, direction: Int): RemoteProfile {
@@ -221,7 +221,7 @@ class ImportedProfileStore(context: Context) {
         val replacement = JSONArray()
         groupedButtons.forEach { replacement.put(it) }
         root.put("buttons", replacement)
-        saveUnverifiedProfile(id, file, root, "تعذر حفظ ترتيب المجموعات")
+        return saveUnverifiedProfile(id, file, root, "تعذر حفظ ترتيب المجموعات")
     }
 
     private fun saveUnverifiedProfile(
