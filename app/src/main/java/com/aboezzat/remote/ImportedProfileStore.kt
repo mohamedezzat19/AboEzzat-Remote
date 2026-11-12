@@ -173,6 +173,76 @@ class ImportedProfileStore(context: Context) {
         return RemoteProfileParser.parse(root.toString())
     }
 
+    fun renameGroup(id: String, group: String, newGroup: String): RemoteProfile {
+        require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
+        val oldName = group.trim()
+        val newName = newGroup.trim()
+        require(oldName.isNotBlank() && newName.isNotBlank() && newName.length <= 40) {
+            "اسم المجموعة يجب أن يكون من 1 إلى 40 حرفًا"
+        }
+        val file = profileFile(id)
+        require(file.isFile) { "ملف الريموت غير موجود" }
+        val root = JSONObject(file.readText(Charsets.UTF_8))
+        val buttons = root.getJSONArray("buttons")
+        var changed = false
+        for (index in 0 until buttons.length()) {
+            val button = buttons.getJSONObject(index)
+            if (button.optString("group", "other") == oldName) {
+                button.put("group", newName)
+                changed = true
+            }
+        }
+        require(changed) { "المجموعة غير موجودة" }
+        saveUnverifiedProfile(id, file, root, "تعذر حفظ اسم المجموعة")
+    }
+
+    fun moveGroup(id: String, group: String, direction: Int): RemoteProfile {
+        require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
+        require(direction == -1 || direction == 1) { "اتجاه الترتيب غير صالح" }
+        val file = profileFile(id)
+        require(file.isFile) { "ملف الريموت غير موجود" }
+        val root = JSONObject(file.readText(Charsets.UTF_8))
+        val buttons = root.getJSONArray("buttons")
+        val groups = (0 until buttons.length())
+            .map { buttons.getJSONObject(it).optString("group", "other") }
+            .distinct()
+        val current = groups.indexOf(group)
+        require(current >= 0) { "المجموعة غير موجودة" }
+        val target = current + direction
+        require(target in groups.indices) { "وصلت إلى نهاية ترتيب المجموعات" }
+        val reordered = groups.toMutableList().apply {
+            val item = removeAt(current)
+            add(target, item)
+        }
+        val groupedButtons = reordered.flatMap { name ->
+            (0 until buttons.length()).map { buttons.getJSONObject(it) }
+                .filter { it.optString("group", "other") == name }
+        }
+        val replacement = JSONArray()
+        groupedButtons.forEach { replacement.put(it) }
+        root.put("buttons", replacement)
+        saveUnverifiedProfile(id, file, root, "تعذر حفظ ترتيب المجموعات")
+    }
+
+    private fun saveUnverifiedProfile(
+        id: String,
+        file: File,
+        root: JSONObject,
+        errorMessage: String
+    ): RemoteProfile {
+        root.put("verification", "imported_unverified")
+        val commands = root.optJSONObject("commands") ?: JSONObject()
+        val keys = commands.keys()
+        while (keys.hasNext()) commands.getJSONObject(keys.next()).put("verified", false)
+        val temporary = File(directory, "$id.json.tmp")
+        temporary.writeText(root.toString(2), Charsets.UTF_8)
+        if (!temporary.renameTo(file)) {
+            temporary.delete()
+            throw IllegalStateException(errorMessage)
+        }
+        return RemoteProfileParser.parse(root.toString())
+    }
+
     fun delete(id: String): Boolean {
         require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
         val file = profileFile(id)
