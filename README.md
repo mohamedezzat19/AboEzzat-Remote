@@ -41,7 +41,7 @@ Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Roadmap
 
-1. Research reliable IR protocol / command data for the RM-SRCEZ38A remote.
+1. Continue research of reliable IR command data for RM-SRCEZ38A (see `docs/JVC_RC-EZ38S_IR_RESEARCH.md` for checked sources and current findings).
 2. Test each command against the RC-EZ38S before marking it verified.
 3. Refine the remote's visual geometry against the manual's remote illustration.
 4. Build a model catalogue for TVs, AC units, fans, and audio systems.
