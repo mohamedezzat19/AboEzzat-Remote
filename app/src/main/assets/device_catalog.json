@@ -5,12 +5,13 @@
       "id": "jvc-rc-ez38s",
       "brand": "JVC",
       "model": "RC-EZ38S",
+      "remoteModel": "RM-SRCEZ38A",
       "category": "audio",
       "displayName": "JVC RC-EZ38S",
       "controlMethod": "infrared",
-      "remoteLayout": "jvc_rc_ez38s",
-      "commands": {},
-      "verification": "pending"
+      "remoteLayout": "remotes/jvc_cassette.json",
+      "commands": "remotes/jvc_cassette.json",
+      "verification": "layout_verified_commands_unverified"
     }
   ]
 }
