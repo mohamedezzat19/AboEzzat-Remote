@@ -459,10 +459,24 @@ class MainActivity : Activity() {
                 gravity = Gravity.CENTER_VERTICAL
             }
             val key = remoteKey(button)
-            val keyParams = LinearLayout.LayoutParams(0, dp(46), 1f)
+            val keyHeight = when (button.buttonSize) {
+                "small" -> 40
+                "large" -> 54
+                else -> 46
+            }
+            val keyParams = LinearLayout.LayoutParams(0, dp(keyHeight), 1f)
             keyParams.setMargins(dp(3), dp(3), dp(6), dp(3))
             row.addView(key, keyParams)
 
+            val style = Button(this).apply {
+                text = "🎨"
+                textSize = 14f
+                isAllCaps = false
+                setTextColor(Color.WHITE)
+                background = background(Color.rgb(47, 67, 91), 12f)
+                contentDescription = "تخصيص لون وشكل وحجم الزر"
+                setOnClickListener { customizeImportedButton(profile.id, button.id) }
+            }
             val edit = Button(this).apply {
                 text = "✎"
                 textSize = 15f
@@ -492,11 +506,12 @@ class MainActivity : Activity() {
                 alpha = if (isEnabled) 1f else 0.35f
                 setOnClickListener { reorderImportedButton(profile.id, button.id, 1) }
             }
-            row.addView(edit, LinearLayout.LayoutParams(dp(44), dp(44)))
-            row.addView(up, LinearLayout.LayoutParams(dp(44), dp(44)))
+            row.addView(style, LinearLayout.LayoutParams(dp(42), dp(44)))
+            row.addView(edit, LinearLayout.LayoutParams(dp(42), dp(44)))
+            row.addView(up, LinearLayout.LayoutParams(dp(40), dp(44)))
             val downParams = LinearLayout.LayoutParams(dp(44), dp(44))
             downParams.leftMargin = dp(5)
-            row.addView(down, downParams)
+            row.addView(down, downParams.apply { width = dp(40) })
             parent.addView(row, LinearLayout.LayoutParams(-1, -2))
         }
     }
@@ -716,16 +731,106 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun customizeImportedButton(profileId: String, buttonId: String) {
+        val profile = runCatching { profileRepository.loadImportedProfile(profileId) }.getOrElse {
+            Toast.makeText(this, "تعذر تحميل الريموت: ${it.message}", Toast.LENGTH_LONG).show()
+            return
+        }
+        val button = profile.buttons.firstOrNull { it.id == buttonId } ?: return
+        var selectedColor = button.buttonColor
+        var selectedShape = button.buttonShape
+        var selectedSize = button.buttonSize
+        val colors = listOf(
+            "slate" to "رمادي داكن",
+            "blue" to "أزرق",
+            "green" to "أخضر",
+            "red" to "أحمر",
+            "purple" to "بنفسجي",
+            "amber" to "ذهبي"
+        )
+        val shapes = listOf(
+            "rounded" to "مستدير",
+            "pill" to "بيضاوي",
+            "square" to "مربع"
+        )
+        val sizes = listOf(
+            "small" to "صغير",
+            "medium" to "متوسط",
+            "large" to "كبير"
+        )
+        lateinit var chooseColor: () -> Unit
+        lateinit var chooseShape: () -> Unit
+        lateinit var chooseSize: () -> Unit
+        chooseSize = {
+            AlertDialog.Builder(this)
+                .setTitle("حجم زر «${button.label}»")
+                .setSingleChoiceItems(sizes.map { it.second }.toTypedArray(),
+                    sizes.indexOfFirst { it.first == selectedSize }.coerceAtLeast(0)) { dialog, which ->
+                    selectedSize = sizes[which].first
+                    dialog.dismiss()
+                    try {
+                        profileRepository.setImportedButtonAppearance(
+                            profileId, buttonId, selectedColor, selectedShape, selectedSize
+                        )
+                        Toast.makeText(this, "تم حفظ مظهر الزر", Toast.LENGTH_SHORT).show()
+                        showImportedProfile(profileId)
+                    } catch (error: Exception) {
+                        Toast.makeText(this, "تعذر حفظ المظهر: ${error.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+                .setNegativeButton("إلغاء", null)
+                .show()
+        }
+        chooseShape = {
+            AlertDialog.Builder(this)
+                .setTitle("شكل زر «${button.label}»")
+                .setSingleChoiceItems(shapes.map { it.second }.toTypedArray(),
+                    shapes.indexOfFirst { it.first == selectedShape }.coerceAtLeast(0)) { dialog, which ->
+                    selectedShape = shapes[which].first
+                    dialog.dismiss()
+                    chooseSize()
+                }
+                .setNegativeButton("إلغاء", null)
+                .show()
+        }
+        chooseColor = {
+            AlertDialog.Builder(this)
+                .setTitle("لون زر «${button.label}»")
+                .setSingleChoiceItems(colors.map { it.second }.toTypedArray(),
+                    colors.indexOfFirst { it.first == selectedColor }.coerceAtLeast(0)) { dialog, which ->
+                    selectedColor = colors[which].first
+                    dialog.dismiss()
+                    chooseShape()
+                }
+                .setNegativeButton("إلغاء", null)
+                .show()
+        }
+        chooseColor()
+    }
+
     private fun remoteKey(
         button: RemoteButtonProfile,
         color: Int = Color.rgb(67, 79, 99)
     ): Button = Button(this).apply {
+        val buttonColor = when (button.buttonColor) {
+            "blue" -> Color.rgb(37, 99, 180)
+            "green" -> Color.rgb(35, 125, 91)
+            "red" -> Color.rgb(160, 58, 62)
+            "purple" -> Color.rgb(108, 76, 156)
+            "amber" -> Color.rgb(161, 112, 37)
+            else -> color
+        }
+        val radius = when (button.buttonShape) {
+            "pill" -> 28f
+            "square" -> 5f
+            else -> 16f
+        }
         text = button.label
         contentDescription = button.description
         textSize = if (button.label.length > 7) 10f else 14f
         isAllCaps = false
         setTextColor(Color.WHITE)
-        background = background(color, 16f)
+        background = background(buttonColor, radius)
         setOnClickListener { sendRemoteButton(button) }
     }
 
