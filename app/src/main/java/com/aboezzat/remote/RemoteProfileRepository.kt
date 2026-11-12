@@ -25,6 +25,9 @@ class RemoteProfileRepository(private val context: Context) {
     fun exportImportedProfile(id: String): String =
         importedProfiles.exportJson(id)
 
+    fun renameImportedProfile(id: String, displayName: String): RemoteProfile =
+        importedProfiles.rename(id, displayName)
+
     fun deleteImportedProfile(id: String): Boolean =
         importedProfiles.delete(id)
 }
