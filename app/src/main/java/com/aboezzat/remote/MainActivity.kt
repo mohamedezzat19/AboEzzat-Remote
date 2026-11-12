@@ -252,6 +252,40 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun addNumericPad(parent: LinearLayout, profile: RemoteProfile) {
+        val buttons = profile.buttons.filter { it.group == "numeric" }
+        if (buttons.isEmpty()) return
+        val heading = text("لوحة الأرقام", 11f, muted, true)
+        val headingParams = LinearLayout.LayoutParams(-1, dp(28))
+        headingParams.topMargin = dp(8)
+        parent.addView(heading, headingParams)
+
+        val byId = buttons.associateBy { it.id }
+        val rows = listOf(
+            listOf("digit_1", "digit_2", "digit_3"),
+            listOf("digit_4", "digit_5", "digit_6"),
+            listOf("digit_7", "digit_8", "digit_9"),
+            listOf("", "digit_0", "")
+        )
+        rows.forEach { rowIds ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+            rowIds.forEach { id ->
+                val params = LinearLayout.LayoutParams(0, dp(46), 1f)
+                params.setMargins(dp(3), dp(3), dp(3), dp(3))
+                val button = byId[id]
+                if (button == null) {
+                    row.addView(TextView(this), params)
+                } else {
+                    row.addView(remoteKey(button), params)
+                }
+            }
+            parent.addView(row, LinearLayout.LayoutParams(-1, -2))
+        }
+    }
+
     private fun remoteKey(
         button: RemoteButtonProfile,
         color: Int = Color.rgb(67, 79, 99)
