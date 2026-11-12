@@ -61,6 +61,7 @@ object NecCandidateEncoder {
         Candidate("volume_up", 0x03FC02FDL),
         Candidate("volume_down", 0x03FC03FCL),
         Candidate("muting", 0x03FC0DF2L),
+        Candidate("play", 0x03FC12EDL),
         Candidate("next", 0x03FC15EAL),
         Candidate("previous", 0x03FC16E9L),
         Candidate("tuner_band", 0x03FC21DEL)
