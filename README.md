@@ -19,7 +19,7 @@ A modular remote-control app designed to support televisions, air conditioners, 
 - **Model:** RC-EZ38S
 - **Device type:** Portable CD / cassette / radio system
 
-The first app screen includes the device categories and an initial JVC remote layout. The JVC buttons are intentionally not wired to invented codes. A verified command profile must be added before a button can transmit.
+The first app screen includes the device categories and a profile-driven JVC remote layout. Its button arrangement follows the original RM-SRCEZ38A remote-control section in the JVC RC-EZ38S user manual. The JVC buttons are intentionally not wired to invented codes. A verified command profile must be added before a button can transmit.
 
 ## Build
 
@@ -31,7 +31,7 @@ gradle assembleDebug
 
 The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Technical notes
+## Remote profile architecture\n\n- Profiles are stored as JSON assets under `app/src/main/assets/remotes/`.\n- `RemoteProfileRepository` loads a profile, and `RemoteProfileParser` converts it into reusable models.\n- Button groups and numeric keypad layout are generated from profile data.\n- Each command must explicitly set `verified: true` and provide a valid carrier frequency and raw timing pattern before transmission is allowed.\n- JVC remote model reference: [RM-SRCEZ38A remote-control unit in the RC-EZ38S manual](https://www.manualslib.com/manual/2539971/Jvc-Rc-Ez38s.html?page=9).\n\n## Technical notes
 
 - Application ID: `com.aboezzat.remote`
 - Language: Kotlin
