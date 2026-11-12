@@ -34,6 +34,14 @@ class RemoteProfileRepository(private val context: Context) {
     fun renameImportedButton(id: String, buttonId: String, newLabel: String): RemoteProfile =
         importedProfiles.renameButton(id, buttonId, newLabel)
 
+    fun setImportedButtonAppearance(
+        id: String,
+        buttonId: String,
+        color: String,
+        shape: String,
+        size: String
+    ): RemoteProfile = importedProfiles.setButtonAppearance(id, buttonId, color, shape, size)
+
     fun renameImportedGroup(id: String, group: String, newGroup: String): RemoteProfile =
         importedProfiles.renameGroup(id, group, newGroup)
 
