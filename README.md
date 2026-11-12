@@ -2,52 +2,51 @@
 
 **أبو عزت ريموت** — Universal Android remote-control platform.
 
-A modular remote-control app designed to support televisions, air conditioners, fans, radios, stereos, and other appliances. Each device model can have its own remote layout, button map, and verified command profile.
+A modular Android app for televisions, air conditioners, fans, cassette players, radios, stereos, and other appliances. Every model has its own remote layout and independently maintained command profile.
 
-## Project goals
+## Current first target: GVC cassette
 
-- Device-specific remote layouts that resemble the original physical remote.
-- Infrared (IR) transmission on phones with a built-in IR emitter.
-- Extensible device and model catalog.
-- Separate UI definitions from command/code data.
-- Future support for supported Wi-Fi and Bluetooth control methods.
-- No guessed IR codes: commands must be verified for the exact model or protocol.
+- Brand: GVC
+- Exact model: not confirmed yet
+- Profile: `app/src/main/assets/remotes/gvc_cassette.json`
+- Status: layout scaffold only; no verified IR commands have been added.
 
-## First target device
+The repository previously contained an exploratory JVC profile based on an unconfirmed assumption. The user identified the pictured cassette as **GVC**, so the active app flow now uses a GVC placeholder profile instead. The old JVC asset is retained only as an inactive reference and must not be treated as the user's device.
 
-- **Brand:** JVC
-- **Model:** RC-EZ38S
-- **Device type:** Portable CD / cassette / radio system
+## Architecture
 
-The first app screen includes the device categories and a profile-driven JVC remote layout. Its button arrangement follows the original RM-SRCEZ38A remote-control section in the JVC RC-EZ38S user manual. The JVC buttons are intentionally not wired to invented codes. A verified command profile must be added before a button can transmit.
+- Android app module in Kotlin.
+- Reusable `RemoteProfile` model and JSON parser.
+- Asset-backed `RemoteProfileRepository`.
+- Device-specific remote layouts and command maps.
+- IR transmission is allowed only when a button has a verified command profile.
+- IR capability is optional; phones without a built-in IR emitter cannot transmit IR directly.
 
 ## Build
 
-Open this repository in Android Studio and sync the Gradle project, or run:
+Open in Android Studio and sync Gradle, or run:
 
 ```bash
 gradle assembleDebug
 ```
 
-The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
+Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Remote profile architecture\n\n- Profiles are stored as JSON assets under `app/src/main/assets/remotes/`.\n- `RemoteProfileRepository` loads a profile, and `RemoteProfileParser` converts it into reusable models.\n- Button groups and numeric keypad layout are generated from profile data.\n- Each command must explicitly set `verified: true` and provide a valid carrier frequency and raw timing pattern before transmission is allowed.\n- JVC remote model reference: [RM-SRCEZ38A remote-control unit in the RC-EZ38S manual](https://www.manualslib.com/manual/2539971/Jvc-Rc-Ez38s.html?page=9).\n\n## Technical notes
+## App details
 
 - Application ID: `com.aboezzat.remote`
 - Language: Kotlin
-- Minimum Android version: Android 6.0 (API 23)
+- Minimum Android: API 23
 - Compile SDK: 35
-- IR capability is optional because not every Android phone has an IR emitter.
 
 ## Roadmap
 
-1. Build and verify the Android foundation.
-2. Implement a structured device/model/remote-profile catalog.
-3. Add verified JVC RC-EZ38S command data and test every key.
-4. Add TV, air-conditioner, fan, and audio remote profiles.
-5. Add profile import/update and custom remote creation.
-6. Add supported network-based control integrations.
+1. Confirm the exact GVC cassette model and original remote layout.
+2. Add verified IR codes and test each button against the actual device.
+3. Build a model catalogue for TVs, AC units, fans, and audio systems.
+4. Add profile import/update and custom remote creation.
+5. Add supported Wi-Fi/Bluetooth control integrations.
 
-## Safety and accuracy
+## Accuracy policy
 
-A button is not considered functional merely because it appears on screen. Its command must be mapped to a verified code and tested against the target device.
+A button is not considered functional merely because it appears on screen. Its command must be verified for the exact model and tested on the target device. Never invent codes or claim a successful control test without evidence.
