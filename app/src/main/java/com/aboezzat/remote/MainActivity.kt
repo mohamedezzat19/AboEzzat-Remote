@@ -1,6 +1,6 @@
 package com.aboezzat.remote
 
-import android.app.Activity
+import android.app.Activity\nimport android.app.AlertDialog
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -23,7 +23,7 @@ class MainActivity : Activity() {
     private var showingJvc = false
     private lateinit var root: LinearLayout
     private lateinit var irTransmitter: InfraredTransmitter
-    private lateinit var profileRepository: RemoteProfileRepository
+    private lateinit var profileRepository: RemoteProfileRepository\n    private var pendingExportProfileId: String? = null
 
     companion object {
         private const val REQUEST_IMPORT_PROFILE = 4102
@@ -173,8 +173,25 @@ class MainActivity : Activity() {
     @Deprecated("Deprecated in Android API")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != REQUEST_IMPORT_PROFILE || resultCode != RESULT_OK) return
+        if (resultCode != RESULT_OK) return
         val uri = data?.data ?: return
+
+        if (requestCode == REQUEST_EXPORT_PROFILE) {
+            val profileId = pendingExportProfileId
+            pendingExportProfileId = null
+            if (profileId == null) return
+            try {
+                val json = profileRepository.exportImportedProfile(profileId)
+                contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(json) }
+                    ?: throw IllegalStateException("تعذر فتح الملف للحفظ")
+                Toast.makeText(this, "تم تصدير ملف الريموت بنجاح", Toast.LENGTH_LONG).show()
+            } catch (error: Exception) {
+                Toast.makeText(this, "فشل التصدير: ${error.message}", Toast.LENGTH_LONG).show()
+            }
+            return
+        }
+
+        if (requestCode != REQUEST_IMPORT_PROFILE) return
         try {
             val json = readLimitedText(uri)
             val imported = profileRepository.importProfile(json)
@@ -209,6 +226,50 @@ class MainActivity : Activity() {
             }
             return output.toString(Charsets.UTF_8.name())
         }
+    }
+
+    private fun exportRemoteProfile(id: String) {
+        val profile = runCatching { profileRepository.loadImportedProfile(id) }.getOrElse {
+            Toast.makeText(this, "تعذر تجهيز التصدير: ${it.message}", Toast.LENGTH_LONG).show()
+            return
+        }
+        val safeName = profile.id.replace(Regex("[^A-Za-z0-9._-]"), "_")
+        pendingExportProfileId = id
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/json"
+            putExtra(Intent.EXTRA_TITLE, "$safeName.json")
+        }
+        try {
+            startActivityForResult(Intent.createChooser(intent, "حفظ نسخة من الريموت"), REQUEST_EXPORT_PROFILE)
+        } catch (error: Exception) {
+            pendingExportProfileId = null
+            Toast.makeText(this, "تعذر فتح نافذة الحفظ: ${error.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun confirmDeleteRemoteProfile(id: String) {
+        val profile = runCatching { profileRepository.loadImportedProfile(id) }.getOrElse {
+            Toast.makeText(this, "تعذر تحميل بيانات الريموت: ${it.message}", Toast.LENGTH_LONG).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("حذف الريموت")
+            .setMessage("هل تريد حذف «${profile.displayName}» من الريموتات المستوردة؟ لا يمكن التراجع عن الحذف.")
+            .setNegativeButton("إلغاء", null)
+            .setPositiveButton("حذف") { _, _ ->
+                try {
+                    if (profileRepository.deleteImportedProfile(id)) {
+                        Toast.makeText(this, "تم حذف الريموت المستورد", Toast.LENGTH_SHORT).show()
+                        showImportedProfiles()
+                    } else {
+                        Toast.makeText(this, "لم يتم حذف الملف", Toast.LENGTH_LONG).show()
+                    }
+                } catch (error: Exception) {
+                    Toast.makeText(this, "تعذر الحذف: ${error.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+            .show()
     }
 
     private fun showImportedProfiles() {
@@ -283,6 +344,12 @@ class MainActivity : Activity() {
             addButtonGroup(remote, profile, group, columns)
         }
         root.addView(remote, LinearLayout.LayoutParams(-1, -2))
+        card("تصدير نسخة JSON", "حفظ الريموت في ملف لمشاركته أو نقله", "⇩") {
+            exportRemoteProfile(profile.id)
+        }
+        card("حذف هذا الريموت", "إزالة النسخة المستوردة من التطبيق", "×") {
+            confirmDeleteRemoteProfile(profile.id)
+        }
         val note = text(
             "هذا ريموت مستورد. جميع أوامر IR تم تعطيل التحقق منها تلقائيًا؛ لن يتم إرسال أي أمر حتى يُختبر ويُعتمد بشكل مستقل.",
             12f,
