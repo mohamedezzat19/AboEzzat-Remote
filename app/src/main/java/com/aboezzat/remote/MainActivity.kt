@@ -371,8 +371,9 @@ class MainActivity : Activity() {
         displayParams.bottomMargin = dp(12)
         remote.addView(display, displayParams)
 
-        profile.buttons.map { it.group }.distinct().forEach { group ->
-            addImportedButtonGroup(remote, profile, group)
+        val importedGroups = profile.buttons.map { it.group }.distinct()
+        importedGroups.forEachIndexed { groupIndex, group ->
+            addImportedButtonGroup(remote, profile, group, groupIndex, importedGroups.size)
         }
         root.addView(remote, LinearLayout.LayoutParams(-1, -2))
         card("تعديل اسم الريموت", "تغيير الاسم الظاهر في التطبيق", "✎") {
@@ -399,7 +400,9 @@ class MainActivity : Activity() {
     private fun addImportedButtonGroup(
         parent: LinearLayout,
         profile: RemoteProfile,
-        group: String
+        group: String,
+        groupIndex: Int,
+        groupCount: Int
     ) {
         val buttons = profile.buttons.filter { it.group == group }
         if (buttons.isEmpty()) return
@@ -412,10 +415,43 @@ class MainActivity : Activity() {
             "volume" -> "مستوى الصوت"
             else -> group.uppercase()
         }
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
         val label = text(groupLabel, 11f, muted, true)
-        val labelParams = LinearLayout.LayoutParams(-1, dp(30))
+        header.addView(label, LinearLayout.LayoutParams(0, dp(38), 1f))
+        val rename = Button(this).apply {
+            text = "✎"
+            isAllCaps = false
+            setTextColor(Color.WHITE)
+            background = background(Color.rgb(47, 67, 91), 10f)
+            setOnClickListener { renameImportedGroup(profile.id, group) }
+        }
+        val up = Button(this).apply {
+            text = "↑"
+            isAllCaps = false
+            setTextColor(Color.WHITE)
+            background = background(Color.rgb(47, 67, 91), 10f)
+            isEnabled = groupIndex > 0
+            alpha = if (isEnabled) 1f else 0.35f
+            setOnClickListener { reorderImportedGroup(profile.id, group, -1) }
+        }
+        val down = Button(this).apply {
+            text = "↓"
+            isAllCaps = false
+            setTextColor(Color.WHITE)
+            background = background(Color.rgb(47, 67, 91), 10f)
+            isEnabled = groupIndex < groupCount - 1
+            alpha = if (isEnabled) 1f else 0.35f
+            setOnClickListener { reorderImportedGroup(profile.id, group, 1) }
+        }
+        header.addView(rename, LinearLayout.LayoutParams(dp(42), dp(36)))
+        header.addView(up, LinearLayout.LayoutParams(dp(42), dp(36)))
+        header.addView(down, LinearLayout.LayoutParams(dp(42), dp(36)))
+        val labelParams = LinearLayout.LayoutParams(-1, -2)
         labelParams.topMargin = dp(8)
-        parent.addView(label, labelParams)
+        parent.addView(header, labelParams)
 
         buttons.forEachIndexed { index, button ->
             val row = LinearLayout(this).apply {
@@ -452,6 +488,40 @@ class MainActivity : Activity() {
             downParams.leftMargin = dp(5)
             row.addView(down, downParams)
             parent.addView(row, LinearLayout.LayoutParams(-1, -2))
+        }
+    }
+
+    private fun renameImportedGroup(id: String, group: String) {
+        val field = EditText(this).apply {
+            setText(group)
+            setSelection(text.length)
+            hint = "اسم المجموعة"
+            setSingleLine(true)
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+        }
+        AlertDialog.Builder(this)
+            .setTitle("تغيير اسم المجموعة")
+            .setView(field)
+            .setNegativeButton("إلغاء", null)
+            .setPositiveButton("حفظ") { _, _ ->
+                try {
+                    val updated = profileRepository.renameImportedGroup(id, group, field.text.toString())
+                    showImportedProfile(updated.id)
+                    Toast.makeText(this, "تم حفظ اسم المجموعة", Toast.LENGTH_SHORT).show()
+                } catch (error: Exception) {
+                    Toast.makeText(this, "تعذر تغيير الاسم: ${error.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+            .show()
+    }
+
+    private fun reorderImportedGroup(id: String, group: String, direction: Int) {
+        try {
+            val updated = profileRepository.moveImportedGroup(id, group, direction)
+            showImportedProfile(updated.id)
+            Toast.makeText(this, "تم تحديث ترتيب المجموعات", Toast.LENGTH_SHORT).show()
+        } catch (error: Exception) {
+            Toast.makeText(this, error.message ?: "تعذر تغيير ترتيب المجموعة", Toast.LENGTH_SHORT).show()
         }
     }
 
