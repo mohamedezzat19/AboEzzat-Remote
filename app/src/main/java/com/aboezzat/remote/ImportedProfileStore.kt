@@ -189,6 +189,31 @@ class ImportedProfileStore(context: Context) {
         return saveUnverifiedProfile(id, file, root, "تعذر حفظ اسم الزر")
     }
 
+    fun setButtonAppearance(
+        id: String,
+        buttonId: String,
+        color: String,
+        shape: String,
+        size: String
+    ): RemoteProfile {
+        require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
+        require(ID_PATTERN.matches(buttonId)) { "معرّف زر غير صالح" }
+        require(color in setOf("slate", "blue", "green", "red", "purple", "amber")) { "لون الزر غير صالح" }
+        require(shape in setOf("rounded", "pill", "square")) { "شكل الزر غير صالح" }
+        require(size in setOf("small", "medium", "large")) { "حجم الزر غير صالح" }
+        val file = profileFile(id)
+        require(file.isFile) { "ملف الريموت غير موجود" }
+        val root = JSONObject(file.readText(Charsets.UTF_8))
+        val buttons = root.getJSONArray("buttons")
+        val target = (0 until buttons.length()).firstNotNullOfOrNull { index ->
+            buttons.getJSONObject(index).takeIf { it.optString("id") == buttonId }
+        } ?: throw IllegalArgumentException("الزر غير موجود")
+        target.put("buttonColor", color)
+        target.put("buttonShape", shape)
+        target.put("buttonSize", size)
+        return saveUnverifiedProfile(id, file, root, "تعذر حفظ مظهر الزر")
+    }
+
     fun renameGroup(id: String, group: String, newGroup: String): RemoteProfile {
         require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
         val oldName = group.trim()
