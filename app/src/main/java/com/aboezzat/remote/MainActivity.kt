@@ -18,7 +18,7 @@ class MainActivity : Activity() {
     private val panel = Color.rgb(21, 31, 51)
     private val accent = Color.rgb(83, 156, 255)
     private val muted = Color.rgb(158, 174, 199)
-    private var showingJvc = false
+    private var showingGvc = false
     private lateinit var root: LinearLayout
     private lateinit var irTransmitter: InfraredTransmitter
     private lateinit var profileRepository: RemoteProfileRepository
@@ -134,7 +134,7 @@ class MainActivity : Activity() {
         card("التلفزيونات", "LG • Samsung • Sony وغيرها", "▣") { comingSoon("التلفزيونات") }
         card("التكييفات", "الحرارة • الوضع • سرعة المروحة", "❄") { comingSoon("التكييفات") }
         card("المراوح", "السرعة • التذبذب • المؤقت", "✺") { comingSoon("المراوح") }
-        card("المسجلات والراديو", "CD • USB • Cassette • FM", "♫") { showJvc() }
+        card("المسجلات والراديو", "CD • USB • Cassette • FM", "♫") { showGvc() }
         card("أنظمة الصوت", "مكبرات الصوت وأجهزة الاستريو", "◖))") { comingSoon("أنظمة الصوت") }
         card("أجهزتي المخصصة", "إضافة موديلات وريموتات جديدة", "+") { comingSoon("إضافة جهاز") }
 
@@ -146,9 +146,9 @@ class MainActivity : Activity() {
     private fun showJvc() {
         showingJvc = true
         val profile = try {
-            profileRepository.loadJvcRcEz38s()
+            profileRepository.loadGvcCassette()
         } catch (error: Exception) {
-            Toast.makeText(this, "تعذر تحميل ملف ريموت JVC: ${error.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "تعذر تحميل ملف ريموت GVC: ${error.message}", Toast.LENGTH_LONG).show()
             showHome()
             return
         }
@@ -161,7 +161,7 @@ class MainActivity : Activity() {
             setOnClickListener { showHome() }
         }
         root.addView(back, LinearLayout.LayoutParams(-2, dp(48)))
-        heading(profile.displayName, "الريموت الأصلي RM-SRCEZ38A • تخطيط مطابق للدليل")
+        heading(profile.displayName, "قالب ريموت كاسيت GVC • بانتظار تحديد الموديل")
 
         val remote = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -174,7 +174,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        val brand = text("JVC", 25f, Color.WHITE, true)
+        val brand = text("GVC", 25f, Color.WHITE, true)
         topRow.addView(brand, LinearLayout.LayoutParams(0, dp(48), 1f))
         profile.buttons.firstOrNull { it.id == "power" }?.let {
             topRow.addView(remoteKey(it, Color.rgb(130, 49, 57)), LinearLayout.LayoutParams(dp(58), dp(52)))
@@ -182,7 +182,7 @@ class MainActivity : Activity() {
         remote.addView(topRow)
 
         val display = TextView(this).apply {
-            text = "JVC  •  RC-EZ38S\nAUDIO SYSTEM"
+            text = "GVC  •  CASSETTE\nREMOTE TEMPLATE"
             textSize = 12f
             gravity = Gravity.CENTER
             setTextColor(Color.rgb(165, 205, 190))
@@ -194,17 +194,12 @@ class MainActivity : Activity() {
         remote.addView(display, displayParams)
 
         addButtonGroup(remote, profile, "source", 3)
-        addButtonGroup(remote, profile, "navigation", 3)
-        addButtonGroup(remote, profile, "effects", 3)
-        addButtonGroup(remote, profile, "sound", 3)
-        addNumericPad(remote, profile)
+        addButtonGroup(remote, profile, "transport", 3)
         addButtonGroup(remote, profile, "volume", 2)
 
         root.addView(remote, LinearLayout.LayoutParams(-1, -2))
 
-        val stateText = if (profile.verification.equals("verified", true))
-            "ملف الأوامر موثق"
-        else "ملف الأوامر قيد التحقق — الأزرار غير الموثقة لن ترسل إشارات"
+        val stateText = "قالب أولي فقط — نحتاج رقم موديل GVC لتثبيت شكل الريموت والأزرار الصحيحة. لا توجد أكواد IR موثقة بعد."
         val note = text(stateText, 12f, muted)
         val np = LinearLayout.LayoutParams(-1, -2)
         np.topMargin = dp(16)
@@ -222,9 +217,7 @@ class MainActivity : Activity() {
         if (buttons.isEmpty()) return
         val groupLabel = when (group) {
             "source" -> "مصادر التشغيل"
-            "navigation" -> "التنقل والتحكم"
-            "effects" -> "وظائف التشغيل"
-            "sound" -> "الصوت والمؤقت"
+            "transport" -> "أزرار الكاسيت والتشغيل"
             "volume" -> "مستوى الصوت"
             else -> group.uppercase()
         }
