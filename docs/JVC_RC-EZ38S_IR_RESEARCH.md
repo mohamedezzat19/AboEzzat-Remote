@@ -42,6 +42,10 @@
 21. A separate RC-EZ35 / RC-EZ31 service manual (No. MB593, 2006) shows a `REMOTE` input on its CD/DSP IC (LC78601RE), but these are different models with different remotes and a different circuit design. This is useful only as evidence that JVC used model-specific remote signal paths in this product family; it is not evidence that RC-EZ38S uses the same decoder or command values. Do not transfer those codes or pin assumptions.
 22. The RC-EZ38S service manual explicitly states that no service parts are available and the unit is handled by one-to-one exchange. Its schematic pages therefore do not provide a normal sensor-board parts list or an IR receiver part number.
 
+
+23. A visual re-check of the original service-manual PDF pages 8 and 9 establishes a more precise connector mapping: on the J5 connector in the Control Circuit (MEM) schematic (printed page 9), pin 25 is labelled `A14_REMOTE`; adjacent pin 26 is `A15` and pin 24 is `A13_POWER KEY`. The CPU schematic maps A14 to TCC760 pin 123 / EXINT[2]-GPIO_A[14]. This is a documented net path from J5 pin 25 to the TCC760 remote input. It still does not identify the optical receiver or its own board-side pinout.
+24. The disassembly page (printed page 4) says the top panel is removed with its PCBs after removing two Screw-D fasteners. Combined with the user manual's identification of the front/top REMOTE SENSOR section, this suggests the front/top-panel PCB area is the practical physical inspection area for the sensor and J5 harness. This is a location lead, not a confirmed sensor-board component identification. Do not open the mains-powered unit while connected to AC; the service manual warns about hazardous mains circuitry and requires qualified service procedures.
+
 ## Decision
 
 - Keep `carrierFrequencyHz: 37900` as protocol reference metadata only.
