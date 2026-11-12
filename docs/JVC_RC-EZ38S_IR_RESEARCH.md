@@ -37,6 +37,11 @@
 18. Important limitation: the service manual does not show a clearly identified IR receiver module or its part number in the searchable schematic text, and the `A14_REMOTE` label does not itself reveal the receiver's output waveform, address byte, or button data. The earlier wording “identify the component connected to A14_REMOTE” is therefore narrowed: we have identified the CPU input path, but not the optical receiver component upstream of it.
 19. No firmware image or code dump for the RC-EZ38S was located in the additional exact-name GitHub searches. The service manual lists a one-to-one exchange service policy, which is consistent with the absence of component-level service details but does not prove that firmware is unobtainable.
 
+
+20. The page-9 control-circuit (MEM) schematic visually confirms that the `A14_REMOTE` net is carried through the J5 multi-pin connector on the memory/control board. The service manual does not show the upstream optical receiver on that sheet or identify its component part number. This narrows the physical tracing task: follow the J5 harness/connector toward the front/top-panel remote-sensor area, rather than assuming the receiver is mounted beside the TCC760 CPU.
+21. A separate RC-EZ35 / RC-EZ31 service manual (No. MB593, 2006) shows a `REMOTE` input on its CD/DSP IC (LC78601RE), but these are different models with different remotes and a different circuit design. This is useful only as evidence that JVC used model-specific remote signal paths in this product family; it is not evidence that RC-EZ38S uses the same decoder or command values. Do not transfer those codes or pin assumptions.
+22. The RC-EZ38S service manual explicitly states that no service parts are available and the unit is handled by one-to-one exchange. Its schematic pages therefore do not provide a normal sensor-board parts list or an IR receiver part number.
+
 ## Decision
 
 - Keep `carrierFrequencyHz: 37900` as protocol reference metadata only.
@@ -49,7 +54,8 @@
 - JVC RC-EZ38S instruction manual, remote control unit: https://www.manualslib.com/manual/2539971/Jvc-Rc-Ez38s.html?page=9
 - Official JVC physical specification for infrared remote control: https://support.jvc.com/consumer/support/documents/RemoteCodes.pdf
 - Official JVC RC-EZ38 archived product page: https://support.jvc.com/consumer/product.jsp?archive=true&modelId=MODL027840&page=2&pathId=36
-- JVC RC-EZ38S service manual No. 28228 (October 2006), including block diagram, control-circuit schematic, and one-to-one service policy: https://device.report/m/b6788c5b128600907d1837655f2d68e0e75951e3c839a7304e01d9943959d716.pdf
+- JVC RC-EZ38S service manual No. 28228 (October 2006), especially control-circuit (CPU) page 8 and control-circuit (MEM) page 9, including J5 and one-to-one service policy: https://device.report/m/b6788c5b128600907d1837655f2d68e0e75951e3c839a7304e01d9943959d716.pdf
+- JVC RC-EZ35 / RC-EZ31 service manual No. MB593 (2006), used only to document a different model-specific REMOTE input circuit, not compatibility: https://audiocircuit.dk/downloads/jvc/JVC-RCEX31B-cs-sch.pdf
 - EM78P156E datasheet (8-bit OTP microcontroller and protection bit): https://win.adrirobot.it/datasheet/processori/pdf/EM78P156E.pdf
 - JVC RC-EZ38S user manual, confirming remote sensor section and approximate 7 m operating distance: https://www.manualslib.com/manual/2539971/Jvc-Rc-Ez38s.html?page=9
 - JVC RC-EZ35S manual showing a different remote model RM-SRCEZ35J: https://www.manualslib.com/manual/83100/Jvc-Rc-Ez35s.html
