@@ -18,6 +18,10 @@
 7. RC-EZ38 service/parts documentation lists RM-SRCEZ38A as the remote control unit, corroborating the target identity, but does not provide per-key IR command values.
 8. JVC's 37.9 kHz specification describes the signal format and a 16-bit custom+data structure. It does not supply the RC-EZ38S-specific custom byte or button data table.
 
+
+9. The exact RC-EZ38S service manual was located: JVC service manual No. 28228, dated October 2006. It includes a block diagram and main/control-circuit schematics. The block diagram identifies a TCC760 CPU and an EM78P156E microcontroller, but the published manual does not include an RM-SRCEZ38A per-button IR code table or a custom/data-byte mapping.
+10. The service manual therefore improves confidence in the exact hardware identity and its control architecture, but it still cannot be used to synthesize the remote's command bytes. The parts list again names RM-SRCEZ38A as the remote control unit.
+
 ## Decision
 
 - Keep `carrierFrequencyHz: 37900` as protocol reference metadata only.
@@ -30,7 +34,7 @@
 - JVC RC-EZ38S instruction manual, remote control unit: https://www.manualslib.com/manual/2539971/Jvc-Rc-Ez38s.html?page=9
 - Official JVC physical specification for infrared remote control: https://support.jvc.com/consumer/support/documents/RemoteCodes.pdf
 - Official JVC RC-EZ38 archived product page: https://support.jvc.com/consumer/product.jsp?archive=true&modelId=MODL027840&page=2&pathId=36
-- RC-EZ38 service/parts documentation listing RM-SRCEZ38A: https://device.report/m/b6788c5b128600907d1837655f2d68e0e75951e3c839a7304e01d9943959d716.pdf
+- JVC RC-EZ38S service manual No. 28228 (October 2006), including block diagram and schematics: https://device.report/m/b6788c5b128600907d1837655f2d68e0e75951e3c839a7304e01d9943959d716.pdf
 - JVC RC-EZ35S manual showing a different remote model RM-SRCEZ35J: https://www.manualslib.com/manual/83100/Jvc-Rc-Ez35s.html
 - Flipper-IRDB project: https://github.com/joshakabulldog/Flipper-IRDB
 - LIRC supported remote controls and database overview: https://www.lirc.org/
