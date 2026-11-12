@@ -21,4 +21,10 @@ class RemoteProfileRepository(private val context: Context) {
 
     fun loadImportedProfile(id: String): RemoteProfile =
         importedProfiles.load(id)
+
+    fun exportImportedProfile(id: String): String =
+        importedProfiles.exportJson(id)
+
+    fun deleteImportedProfile(id: String): Boolean =
+        importedProfiles.delete(id)
 }
