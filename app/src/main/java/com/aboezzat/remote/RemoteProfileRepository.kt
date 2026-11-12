@@ -8,6 +8,6 @@ class RemoteProfileRepository(private val context: Context) {
         return RemoteProfileParser.parse(json)
     }
 
-    fun loadJvcRcEz38s(): RemoteProfile =
-        load("remotes/jvc_rc_ez38s.json")
+    fun loadGvcCassette(): RemoteProfile =
+        load("remotes/gvc_cassette.json")
 }
