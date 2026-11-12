@@ -1,6 +1,7 @@
 package com.aboezzat.remote
 
-import android.app.Activity\nimport android.app.AlertDialog
+import android.app.Activity
+import android.app.AlertDialog
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -23,7 +24,8 @@ class MainActivity : Activity() {
     private var showingJvc = false
     private lateinit var root: LinearLayout
     private lateinit var irTransmitter: InfraredTransmitter
-    private lateinit var profileRepository: RemoteProfileRepository\n    private var pendingExportProfileId: String? = null
+    private lateinit var profileRepository: RemoteProfileRepository
+    private var pendingExportProfileId: String? = null
 
     companion object {
         private const val REQUEST_IMPORT_PROFILE = 4102
