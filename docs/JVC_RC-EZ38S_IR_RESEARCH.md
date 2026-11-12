@@ -32,6 +32,11 @@
 15. The same schematic labels B4 as `B4_P CON(EM78P156E)`; this is a separate control connection and must not be mistaken for the IR input. The EM78P156E datasheet describes a general 8-bit OTP microcontroller with 1K×13-bit OTP ROM and a protection bit. This makes the chip's programmed contents potentially protected, but there is no evidence in the service manual that it contains the remote decoder or command table.
 16. The service manual states that no service parts are available and the service policy is one-to-one exchange. That explains why it contains circuit diagrams but no detailed remote-command service data.
 
+
+17. The original page-8 CPU schematic was inspected visually (not only via extracted text). It labels the TCC760 signal line `A14_REMOTE` at the CPU interface. The TCC760 pin-function table identifies GPIO_A[14] / EXINT[2] as pin 123. This supports the interpretation that the remote signal is delivered to the TCC760's A14 / GPIO_A14 input path.
+18. Important limitation: the service manual does not show a clearly identified IR receiver module or its part number in the searchable schematic text, and the `A14_REMOTE` label does not itself reveal the receiver's output waveform, address byte, or button data. The earlier wording “identify the component connected to A14_REMOTE” is therefore narrowed: we have identified the CPU input path, but not the optical receiver component upstream of it.
+19. No firmware image or code dump for the RC-EZ38S was located in the additional exact-name GitHub searches. The service manual lists a one-to-one exchange service policy, which is consistent with the absence of component-level service details but does not prove that firmware is unobtainable.
+
 ## Decision
 
 - Keep `carrierFrequencyHz: 37900` as protocol reference metadata only.
