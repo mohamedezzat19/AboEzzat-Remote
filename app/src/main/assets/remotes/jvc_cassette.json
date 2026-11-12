@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "jvc-cassette-model-pending",
+  "brand": "JVC",
+  "model": "MODEL-TO-CONFIRM",
+  "deviceType": "cassette_audio",
+  "displayName": "JVC Cassette",
+  "layout": "jvc_cassette_template",
+  "verification": "pending_model_confirmation",
+  "carrierFrequencyHz": 38000,
+  "buttons": [
+    {"id":"power","label":"⏻","description":"Power","group":"top","command":null},
+    {"id":"play","label":"▶ PLAY","description":"Play","group":"transport","command":null},
+    {"id":"stop","label":"■ STOP","description":"Stop","group":"transport","command":null},
+    {"id":"rewind","label":"◀◀ REW","description":"Rewind","group":"transport","command":null},
+    {"id":"fast_forward","label":"▶▶ FF","description":"Fast forward","group":"transport","command":null},
+    {"id":"pause","label":"Ⅱ PAUSE","description":"Pause","group":"transport","command":null},
+    {"id":"record","label":"● REC","description":"Record","group":"transport","command":null},
+    {"id":"volume_down","label":"VOL −","description":"Volume down","group":"volume","command":null},
+    {"id":"volume_up","label":"VOL +","description":"Volume up","group":"volume","command":null},
+    {"id":"source_radio","label":"RADIO","description":"Radio source","group":"source","command":null},
+    {"id":"source_tape","label":"TAPE","description":"Tape source","group":"source","command":null},
+    {"id":"source_cd","label":"CD","description":"CD source","group":"source","command":null}
+  ],
+  "commands": {}
+}
