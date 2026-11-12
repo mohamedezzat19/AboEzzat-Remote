@@ -42,11 +42,12 @@ Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 ## Roadmap
 
 1. Continue research of reliable IR command data for RM-SRCEZ38A (see `docs/JVC_RC-EZ38S_IR_RESEARCH.md` for checked sources and current findings).
-2. Test each command against the RC-EZ38S before marking it verified.
-3. Refine the remote's visual geometry against the manual's remote illustration.
-4. Build a model catalogue for TVs, AC units, fans, and audio systems.
-5. Add profile import/update and custom remote creation.
-6. Add supported Wi-Fi/Bluetooth control integrations.
+2. Capture the original remote's raw timings using the safe external receiver workflow in `docs/IR_CAPTURE_GUIDE.md`.
+3. Test each command against the RC-EZ38S before marking it verified.
+4. Refine the remote's visual geometry against the manual's remote illustration.
+5. Build a model catalogue for TVs, AC units, fans, and audio systems.
+6. Add profile import/update and custom remote creation.
+7. Add supported Wi-Fi/Bluetooth control integrations.
 
 ## Accuracy policy
 
