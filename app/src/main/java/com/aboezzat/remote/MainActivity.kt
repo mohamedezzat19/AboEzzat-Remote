@@ -654,7 +654,69 @@ class MainActivity : Activity() {
         val np = LinearLayout.LayoutParams(-1, -2)
         np.topMargin = dp(16)
         root.addView(note, np)
+        card("اختبار أكواد IR المتاحة", "اختبر كل زر واحفظ الكود فقط بعد استجابة الجهاز", "⌁") {
+            showJvcIrCandidateTests()
+        }
         setContentView(scroll)
+    }
+
+    private fun showJvcIrCandidateTests() {
+        if (!irTransmitter.isAvailable()) {
+            AlertDialog.Builder(this).setTitle("مرسل IR غير متاح")
+                .setMessage("الهاتف لا يحتوي على مرسل أشعة تحت الحمراء.")
+                .setPositiveButton("حسناً", null).show()
+            return
+        }
+        val candidates = NecCandidateEncoder.JVC_RC_EZ38S_CANDIDATES
+        val labels = candidates.map { candidate ->
+            val title = when (candidate.buttonId) {
+                "power" -> "Power"
+                "volume_up" -> "Volume +"
+                "volume_down" -> "Volume −"
+                "muting" -> "Mute"
+                "play" -> "Play"
+                "next" -> "Next"
+                "previous" -> "Previous"
+                "tuner_band" -> "Band"
+                else -> candidate.buttonId
+            }
+            val saved = getSharedPreferences("jvc_ir_tests", MODE_PRIVATE)
+                .getBoolean("verified_${candidate.buttonId}", false)
+            "$title  •  ${if (saved) "تم اعتماده" else "غير مختبر"}"
+        }.toTypedArray()
+        AlertDialog.Builder(this).setTitle("اختر الزر المراد اختباره")
+            .setItems(labels) { _, which ->
+                val candidate = candidates[which]
+                val title = labels[which].substringBefore("  •")
+                irTransmitter.send(
+                    NecCandidateEncoder.CARRIER_FREQUENCY_HZ,
+                    NecCandidateEncoder.encode32(candidate.hexCode)
+                ).fold(
+                    onSuccess = {
+                        AlertDialog.Builder(this).setTitle("اختبار $title")
+                            .setMessage("أرسلنا الكود ${"0x%08X".format(candidate.hexCode)}. راقب الجهاز: هل نفّذ الوظيفة المطلوبة؟")
+                            .setPositiveButton("اشتغل - احفظ") { _, _ ->
+                                getSharedPreferences("jvc_ir_tests", MODE_PRIVATE).edit()
+                                    .putBoolean("verified_${candidate.buttonId}", true)
+                                    .putLong("code_${candidate.buttonId}", candidate.hexCode)
+                                    .apply()
+                                Toast.makeText(this, "تم اعتماد كود $title", Toast.LENGTH_LONG).show()
+                                showJvc()
+                            }
+                            .setNegativeButton("لم يعمل") { _, _ ->
+                                getSharedPreferences("jvc_ir_tests", MODE_PRIVATE).edit()
+                                    .putBoolean("verified_${candidate.buttonId}", false)
+                                    .remove("code_${candidate.buttonId}").apply()
+                                Toast.makeText(this, "لم يتم اعتماد الكود", Toast.LENGTH_SHORT).show()
+                            }
+                            .setNeutralButton("اختبار زر آخر") { _, _ -> showJvcIrCandidateTests() }
+                            .show()
+                    },
+                    onFailure = { error ->
+                        Toast.makeText(this, "تعذر إرسال كود الاختبار: ${error.message}", Toast.LENGTH_LONG).show()
+                    }
+                )
+            }.setNegativeButton("إلغاء", null).show()
     }
 
     private fun addButtonGroup(
@@ -836,7 +898,18 @@ class MainActivity : Activity() {
 
     private fun sendRemoteButton(button: RemoteButtonProfile) {
         if (!button.verified || button.carrierFrequencyHz == null || button.patternMicros == null) {
-            Toast.makeText(this, "${button.description}: كود IR موثوق غير متوفر لهذا الزر بعد", Toast.LENGTH_SHORT).show()
+            val prefs = getSharedPreferences("jvc_ir_tests", MODE_PRIVATE)
+            val savedCode = if (showingJvc && prefs.getBoolean("verified_${button.id}", false))
+                prefs.getLong("code_${button.id}", -1L).takeIf { it >= 0L } else null
+            if (savedCode != null) {
+                irTransmitter.send(NecCandidateEncoder.CARRIER_FREQUENCY_HZ,
+                    NecCandidateEncoder.encode32(savedCode)).fold(
+                    onSuccess = { Toast.makeText(this, "تم إرسال أمر ${button.description}", Toast.LENGTH_SHORT).show() },
+                    onFailure = { error -> Toast.makeText(this, "تعذر إرسال الأمر: ${error.message}", Toast.LENGTH_LONG).show() }
+                )
+                return
+            }
+            Toast.makeText(this, "${button.description}: كود IR موثوق غير متوفر. استخدم اختبار الأكواد أولاً.", Toast.LENGTH_LONG).show()
             return
         }
         irTransmitter.send(button.carrierFrequencyHz, button.patternMicros).fold(
