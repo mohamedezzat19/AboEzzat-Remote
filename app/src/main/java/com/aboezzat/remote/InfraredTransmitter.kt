@@ -40,6 +40,47 @@ class InfraredTransmitter(context: Context) {
 }
 
 /**
+ * Encoder for the standard 16-bit JVC protocol.
+ *
+ * The address byte is transmitted first, followed by the command byte.
+ * Bits within each byte are sent least-significant-bit first. This encoder
+ * does not provide model-specific address/command values; those must be
+ * independently identified before any signal is sent to a device.
+ */
+object JvcProtocolEncoder {
+    const val CARRIER_FREQUENCY_HZ = 37_900
+    private const val HEADER_MARK_MICROS = 8_440
+    private const val HEADER_SPACE_MICROS = 4_220
+    private const val BIT_MARK_MICROS = 527
+    private const val ZERO_SPACE_MICROS = 1_055
+    private const val ONE_SPACE_MICROS = 2_110
+    private const val TRAILING_GAP_MICROS = 42_000
+
+    fun encode(address: Int, command: Int): IntArray {
+        require(address in 0..0xFF) { "JVC address must be one byte" }
+        require(command in 0..0xFF) { "JVC command must be one byte" }
+
+        val pattern = IntArray(36)
+        var index = 0
+        pattern[index++] = HEADER_MARK_MICROS
+        pattern[index++] = HEADER_SPACE_MICROS
+
+        for (value in intArrayOf(address, command)) {
+            for (bitIndex in 0..7) {
+                pattern[index++] = BIT_MARK_MICROS
+                pattern[index++] =
+                    if (((value shr bitIndex) and 1) == 1) ONE_SPACE_MICROS
+                    else ZERO_SPACE_MICROS
+            }
+        }
+
+        pattern[index++] = BIT_MARK_MICROS
+        pattern[index] = TRAILING_GAP_MICROS
+        return pattern
+    }
+}
+
+/**
  * NEC encoder for analysis/testing of candidate codes only.
  *
  * Values are represented in the usual hexadecimal form (for example 0x03FC14EB)
