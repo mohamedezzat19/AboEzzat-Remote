@@ -38,3 +38,57 @@ class InfraredTransmitter(context: Context) {
         }
     }
 }
+
+/**
+ * NEC encoder for analysis/testing of candidate codes only.
+ *
+ * Values are represented in the usual hexadecimal form (for example 0x03FC14EB)
+ * and NEC transmits the least-significant bit first. These candidates are NOT
+ * verified for any particular JVC model and must never be sent as normal remote
+ * commands until independently tested against the exact device.
+ */
+object NecCandidateEncoder {
+    data class Candidate(
+        val buttonId: String,
+        val hexCode: Long,
+        val note: String = "Unverified NEC candidate; not enabled for transmission"
+    )
+
+    const val CARRIER_FREQUENCY_HZ = 38_000
+
+    val JVC_RC_EZ38S_CANDIDATES: List<Candidate> = listOf(
+        Candidate("power", 0x03FC14EBL),
+        Candidate("volume_up", 0x03FC02FDL),
+        Candidate("volume_down", 0x03FC03FCL),
+        Candidate("muting", 0x03FC0DF2L),
+        Candidate("next", 0x03FC15EAL),
+        Candidate("previous", 0x03FC16E9L),
+        Candidate("tuner_band", 0x03FC21DEL)
+    )
+
+    /**
+     * Creates an alternating mark/space pattern suitable for ConsumerIrManager.
+     * The final 560us mark is followed by a 40ms space, so the array has an even
+     * number of entries and satisfies InfraredTransmitter's validation.
+     */
+    fun encode32(hexCode: Long, trailingGapMicros: Int = 40_000): IntArray {
+        require(hexCode in 0L..0xFFFF_FFFFL) { "NEC code must be an unsigned 32-bit value" }
+        require(trailingGapMicros > 0) { "Trailing gap must be positive" }
+
+        val pattern = IntArray(68)
+        var index = 0
+        pattern[index++] = 9_000
+        pattern[index++] = 4_500
+
+        for (bitIndex in 0..31) {
+            val bit = (hexCode shr bitIndex) and 1L
+            pattern[index++] = 560
+            pattern[index++] = if (bit == 1L) 1_690 else 560
+        }
+
+        pattern[index++] = 560
+        pattern[index] = trailingGapMicros
+        return pattern
+    }
+}
+
