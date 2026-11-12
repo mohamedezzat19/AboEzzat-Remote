@@ -160,7 +160,7 @@ class MainActivity : Activity() {
             setOnClickListener { showHome() }
         }
         root.addView(back, LinearLayout.LayoutParams(-2, dp(48)))
-        heading(profile.displayName, "قالب ريموت كاسيت JVC • بانتظار تحديد الموديل")
+        heading(profile.displayName, "ريموت مطابق لتخطيط RM-SRCEZ38A")
 
         val remote = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -181,7 +181,7 @@ class MainActivity : Activity() {
         remote.addView(topRow)
 
         val display = TextView(this).apply {
-            text = "JVC  •  CASSETTE\nREMOTE TEMPLATE"
+            text = "RC-EZ38S  •  CD / USB / FM"
             textSize = 12f
             gravity = Gravity.CENTER
             setTextColor(Color.rgb(165, 205, 190))
@@ -192,13 +192,16 @@ class MainActivity : Activity() {
         displayParams.bottomMargin = dp(16)
         remote.addView(display, displayParams)
 
-        addButtonGroup(remote, profile, "source", 3)
-        addButtonGroup(remote, profile, "transport", 3)
+        addButtonGroup(remote, profile, "source", 2)
+        addButtonGroup(remote, profile, "navigation", 3)
+        addButtonGroup(remote, profile, "effects", 3)
+        addButtonGroup(remote, profile, "sound", 3)
+        addNumericPad(remote, profile)
         addButtonGroup(remote, profile, "volume", 2)
 
         root.addView(remote, LinearLayout.LayoutParams(-1, -2))
 
-        val stateText = "قالب أولي فقط — نحتاج رقم موديل JVC لتثبيت شكل الريموت والأزرار الصحيحة. لا توجد أكواد IR موثقة بعد."
+        val stateText = "تخطيط الأزرار مستند إلى دليل JVC RC-EZ38S والريموت RM-SRCEZ38A. أكواد الأشعة تحت الحمراء لم تُوثّق أو تُختبر بعد؛ لذلك الأزرار لن ترسل أوامر حتى تتوفر أكواد مؤكدة."
         val note = text(stateText, 12f, muted)
         val np = LinearLayout.LayoutParams(-1, -2)
         np.topMargin = dp(16)
@@ -216,7 +219,9 @@ class MainActivity : Activity() {
         if (buttons.isEmpty()) return
         val groupLabel = when (group) {
             "source" -> "مصادر التشغيل"
-            "transport" -> "أزرار الكاسيت والتشغيل"
+            "navigation" -> "التنقل والتحكم"
+            "effects" -> "التكرار والبرمجة"
+            "sound" -> "الصوت والمؤقت"
             "volume" -> "مستوى الصوت"
             else -> group.uppercase()
         }
