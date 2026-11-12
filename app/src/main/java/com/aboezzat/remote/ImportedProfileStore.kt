@@ -112,6 +112,18 @@ class ImportedProfileStore(context: Context) {
         return RemoteProfileParser.parse(file.readText(Charsets.UTF_8))
     }
 
+    fun exportJson(id: String): String {
+        load(id) // Validate the stored profile before exporting it.
+        return profileFile(id).readText(Charsets.UTF_8)
+    }
+
+    fun delete(id: String): Boolean {
+        require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
+        val file = profileFile(id)
+        require(file.isFile) { "ملف الريموت غير موجود" }
+        return file.delete()
+    }
+
     private fun profileFile(id: String) = File(directory, "$id.json")
 
     companion object {
