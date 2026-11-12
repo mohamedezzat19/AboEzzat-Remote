@@ -63,7 +63,11 @@ class ImportedProfileStore(context: Context) {
             }
             val safeTimings = JSONArray()
             for (i in 0 until timings.length()) {
-                val duration = timings.getInt(i)
+                val rawDuration = timings.get(i)
+                require(rawDuration is Number && rawDuration.toDouble() == rawDuration.toInt().toDouble()) {
+                    "توقيت IR يجب أن يكون عددًا صحيحًا للزر $commandId"
+                }
+                val duration = (rawDuration as Number).toInt()
                 require(duration in 1..MAX_DURATION_MICROS) {
                     "قيمة توقيت IR غير صالحة للزر $commandId"
                 }
