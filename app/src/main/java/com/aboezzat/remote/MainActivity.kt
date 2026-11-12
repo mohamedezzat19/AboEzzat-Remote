@@ -667,7 +667,13 @@ class MainActivity : Activity() {
                 .setPositiveButton("حسناً", null).show()
             return
         }
+        val supportedButtonIds = profileRepository.loadJvcCassette().buttons.map { it.id }.toSet()
         val candidates = NecCandidateEncoder.JVC_RC_EZ38S_CANDIDATES
+            .filter { it.buttonId in supportedButtonIds }
+        if (candidates.isEmpty()) {
+            Toast.makeText(this, "لا توجد أكواد مرشحة لأزرار هذا الريموت", Toast.LENGTH_SHORT).show()
+            return
+        }
         val labels = candidates.map { candidate ->
             val title = when (candidate.buttonId) {
                 "power" -> "Power"
