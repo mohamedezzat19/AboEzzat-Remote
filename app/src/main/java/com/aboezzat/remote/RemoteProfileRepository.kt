@@ -28,6 +28,9 @@ class RemoteProfileRepository(private val context: Context) {
     fun renameImportedProfile(id: String, displayName: String): RemoteProfile =
         importedProfiles.rename(id, displayName)
 
+    fun moveImportedButton(id: String, buttonId: String, direction: Int): RemoteProfile =
+        importedProfiles.moveButton(id, buttonId, direction)
+
     fun deleteImportedProfile(id: String): Boolean =
         importedProfiles.delete(id)
 }
