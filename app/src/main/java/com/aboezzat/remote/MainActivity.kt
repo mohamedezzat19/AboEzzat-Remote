@@ -688,7 +688,7 @@ class MainActivity : Activity() {
             }
             val saved = getSharedPreferences("jvc_ir_tests", MODE_PRIVATE)
                 .getBoolean("verified_${candidate.buttonId}", false)
-            "$title  •  ${if (saved) "تم اعتماده" else "غير مختبر"}"
+            "$title  •  ${if (saved) "استجابة أكدها المستخدم" else "مرشح غير مختبر"}"
         }.toTypedArray()
         AlertDialog.Builder(this).setTitle("اختر الزر المراد اختباره")
             .setItems(labels) { _, which ->
@@ -699,21 +699,21 @@ class MainActivity : Activity() {
                     NecCandidateEncoder.encode32(candidate.hexCode)
                 ).fold(
                     onSuccess = {
-                        AlertDialog.Builder(this).setTitle("اختبار $title")
-                            .setMessage("أرسلنا الكود ${"0x%08X".format(candidate.hexCode)}. راقب الجهاز: هل نفّذ الوظيفة المطلوبة؟")
-                            .setPositiveButton("اشتغل - احفظ") { _, _ ->
+                        AlertDialog.Builder(this).setTitle("اختبار تجريبي: $title")
+                            .setMessage("أرسلنا مرشح NEC ${"0x%08X".format(candidate.hexCode)} بتردد 38kHz. تنبيه: هذا ليس كوداً موثقاً لجهاز JVC RC-EZ38S، ومرجع JVC يستخدم توقيتات بروتوكول مختلفة. راقب الجهاز؛ لا تحفظه إلا إذا نفّذ الوظيفة المطلوبة بالضبط.")
+                            .setPositiveButton("الجهاز استجاب - احفظ كتجربة") { _, _ ->
                                 getSharedPreferences("jvc_ir_tests", MODE_PRIVATE).edit()
                                     .putBoolean("verified_${candidate.buttonId}", true)
                                     .putLong("code_${candidate.buttonId}", candidate.hexCode)
                                     .apply()
-                                Toast.makeText(this, "تم اعتماد كود $title", Toast.LENGTH_LONG).show()
+                                Toast.makeText(this, "تم حفظ الكود كتجربة بناءً على تأكيدك لاستجابة الجهاز", Toast.LENGTH_LONG).show()
                                 showJvc()
                             }
                             .setNegativeButton("لم يعمل") { _, _ ->
                                 getSharedPreferences("jvc_ir_tests", MODE_PRIVATE).edit()
                                     .putBoolean("verified_${candidate.buttonId}", false)
                                     .remove("code_${candidate.buttonId}").apply()
-                                Toast.makeText(this, "لم يتم اعتماد الكود", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this, "لم يتم حفظ المرشح؛ لم يتغير زر الريموت", Toast.LENGTH_SHORT).show()
                             }
                             .setNeutralButton("اختبار زر آخر") { _, _ -> showJvcIrCandidateTests() }
                             .show()
