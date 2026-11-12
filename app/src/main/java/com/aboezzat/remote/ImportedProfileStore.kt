@@ -173,6 +173,22 @@ class ImportedProfileStore(context: Context) {
         return RemoteProfileParser.parse(root.toString())
     }
 
+    fun renameButton(id: String, buttonId: String, newLabel: String): RemoteProfile {
+        require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
+        require(ID_PATTERN.matches(buttonId)) { "معرّف زر غير صالح" }
+        val label = newLabel.trim()
+        require(label.isNotBlank() && label.length <= 32) { "اسم الزر يجب أن يكون من 1 إلى 32 حرفًا" }
+        val file = profileFile(id)
+        require(file.isFile) { "ملف الريموت غير موجود" }
+        val root = JSONObject(file.readText(Charsets.UTF_8))
+        val buttons = root.getJSONArray("buttons")
+        val target = (0 until buttons.length()).firstNotNullOfOrNull { index ->
+            buttons.getJSONObject(index).takeIf { it.optString("id") == buttonId }
+        } ?: throw IllegalArgumentException("الزر غير موجود")
+        target.put("label", label)
+        return saveUnverifiedProfile(id, file, root, "تعذر حفظ اسم الزر")
+    }
+
     fun renameGroup(id: String, group: String, newGroup: String): RemoteProfile {
         require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
         val oldName = group.trim()
