@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.view.Gravity
 import java.io.ByteArrayOutputStream
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -251,6 +252,34 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun renameRemoteProfile(id: String) {
+        val profile = runCatching { profileRepository.loadImportedProfile(id) }.getOrElse {
+            Toast.makeText(this, "تعذر تحميل الريموت: ${it.message}", Toast.LENGTH_LONG).show()
+            return
+        }
+        val field = EditText(this).apply {
+            setText(profile.displayName)
+            setSelection(text.length)
+            hint = "اسم الريموت"
+            setSingleLine(true)
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+        }
+        AlertDialog.Builder(this)
+            .setTitle("تعديل اسم الريموت")
+            .setView(field)
+            .setNegativeButton("إلغاء", null)
+            .setPositiveButton("حفظ") { _, _ ->
+                try {
+                    val updated = profileRepository.renameImportedProfile(id, field.text.toString())
+                    Toast.makeText(this, "تم حفظ الاسم الجديد", Toast.LENGTH_SHORT).show()
+                    showImportedProfile(updated.id)
+                } catch (error: Exception) {
+                    Toast.makeText(this, "تعذر حفظ الاسم: ${error.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+            .show()
+    }
+
     private fun confirmDeleteRemoteProfile(id: String) {
         val profile = runCatching { profileRepository.loadImportedProfile(id) }.getOrElse {
             Toast.makeText(this, "تعذر تحميل بيانات الريموت: ${it.message}", Toast.LENGTH_LONG).show()
@@ -347,6 +376,9 @@ class MainActivity : Activity() {
             addButtonGroup(remote, profile, group, columns)
         }
         root.addView(remote, LinearLayout.LayoutParams(-1, -2))
+        card("تعديل اسم الريموت", "تغيير الاسم الظاهر في التطبيق", "✎") {
+            renameRemoteProfile(profile.id)
+        }
         card("تصدير نسخة JSON", "حفظ الريموت في ملف لمشاركته أو نقله", "⇩") {
             exportRemoteProfile(profile.id)
         }
