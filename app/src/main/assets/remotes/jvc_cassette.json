@@ -8,7 +8,7 @@
   "displayName": "JVC RC-EZ38S",
   "layout": "rm_srcez38a_original",
   "layoutReference": "JVC RC-EZ38S instruction manual, Remote Control Unit page",
-  "verification": "layout_verified_commands_unverified",
+  "verification": "layout_verified_protocol_reference_only_commands_unverified",
   "carrierFrequencyHz": 38000,
   "buttons": [
     {
@@ -201,5 +201,19 @@
       "command": null
     }
   ],
-  "commands": {}
+  "commands": {},
+  "irProtocol": {
+    "family": "JVC pulse-interval modulation",
+    "carrierFrequencyHz": 37900,
+    "wavelengthNm": 940,
+    "headerMarkMicros": 8440,
+    "headerSpaceMicros": 4220,
+    "bitMarkMicros": 527,
+    "zeroSpaceMicros": 1055,
+    "oneSpaceMicros": 2110,
+    "wordCycleMicros": 46420,
+    "source": "JVC Physical Specification for JVC Infrared Remote Control",
+    "status": "protocol_reference_only",
+    "warning": "These are protocol-level specifications, not RC-EZ38S button command codes. Do not transmit until the device address and per-button data codes are independently identified and tested."
+  }
 }
