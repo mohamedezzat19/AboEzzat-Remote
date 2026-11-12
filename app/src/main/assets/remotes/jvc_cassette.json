@@ -9,7 +9,7 @@
   "layout": "rm_srcez38a_original",
   "layoutReference": "JVC RC-EZ38S instruction manual, Remote Control Unit page",
   "verification": "layout_verified_protocol_reference_only_commands_unverified",
-  "carrierFrequencyHz": 38000,
+  "carrierFrequencyHz": 37900,
   "buttons": [
     {
       "id": "power",
