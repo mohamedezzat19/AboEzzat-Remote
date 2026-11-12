@@ -161,7 +161,7 @@ class MainActivity : Activity() {
             setOnClickListener { showHome() }
         }
         root.addView(back, LinearLayout.LayoutParams(-2, dp(48)))
-        heading(profile.displayName, "ريموت المسجل • ملف جهاز مستقل")
+        heading(profile.displayName, "الريموت الأصلي RM-SRCEZ38A • تخطيط مطابق للدليل")
 
         val remote = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -241,7 +241,7 @@ class MainActivity : Activity() {
             repeat(columns) {
                 if (index < buttons.size) {
                     val button = buttons[index++]
-                    val p = LinearLayout.LayoutParams(0, dp(if (group == "transport") 54 else 48), 1f)
+                    val p = LinearLayout.LayoutParams(0, dp(if (group == "navigation") 54 else 48), 1f)
                     p.setMargins(dp(3), dp(4), dp(3), dp(4))
                     row.addView(remoteKey(button), p)
                 } else {
