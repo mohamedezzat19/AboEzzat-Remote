@@ -31,6 +31,12 @@ class RemoteProfileRepository(private val context: Context) {
     fun moveImportedButton(id: String, buttonId: String, direction: Int): RemoteProfile =
         importedProfiles.moveButton(id, buttonId, direction)
 
+    fun renameImportedGroup(id: String, group: String, newGroup: String): RemoteProfile =
+        importedProfiles.renameGroup(id, group, newGroup)
+
+    fun moveImportedGroup(id: String, group: String, direction: Int): RemoteProfile =
+        importedProfiles.moveGroup(id, group, direction)
+
     fun deleteImportedProfile(id: String): Boolean =
         importedProfiles.delete(id)
 }
