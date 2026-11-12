@@ -117,6 +117,27 @@ class ImportedProfileStore(context: Context) {
         return profileFile(id).readText(Charsets.UTF_8)
     }
 
+    fun rename(id: String, newDisplayName: String): RemoteProfile {
+        require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
+        val name = newDisplayName.trim()
+        require(name.isNotBlank() && name.length <= 80) { "الاسم يجب أن يكون من 1 إلى 80 حرفًا" }
+        val file = profileFile(id)
+        require(file.isFile) { "ملف الريموت غير موجود" }
+        val root = JSONObject(file.readText(Charsets.UTF_8))
+        root.put("displayName", name)
+        root.put("verification", "imported_unverified")
+        val commands = root.optJSONObject("commands") ?: JSONObject()
+        val keys = commands.keys()
+        while (keys.hasNext()) commands.getJSONObject(keys.next()).put("verified", false)
+        val temporary = File(directory, "$id.json.tmp")
+        temporary.writeText(root.toString(2), Charsets.UTF_8)
+        if (!temporary.renameTo(file)) {
+            temporary.delete()
+            throw IllegalStateException("تعذر حفظ الاسم الجديد")
+        }
+        return RemoteProfileParser.parse(root.toString())
+    }
+
     fun delete(id: String): Boolean {
         require(ID_PATTERN.matches(id) && id != "." && id != "..") { "معرّف ريموت غير صالح" }
         val file = profileFile(id)
