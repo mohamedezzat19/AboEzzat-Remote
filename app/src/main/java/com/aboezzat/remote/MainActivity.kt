@@ -193,11 +193,12 @@ class MainActivity : Activity() {
         displayParams.bottomMargin = dp(16)
         remote.addView(display, displayParams)
 
-        addButtonGroup(remote, profile, "source", 2)
-        addButtonGroup(remote, profile, "transport", 4)
+        addButtonGroup(remote, profile, "source", 3)
+        addButtonGroup(remote, profile, "navigation", 3)
+        addButtonGroup(remote, profile, "effects", 3)
+        addButtonGroup(remote, profile, "sound", 3)
+        addNumericPad(remote, profile)
         addButtonGroup(remote, profile, "volume", 2)
-        addButtonGroup(remote, profile, "radio", 2)
-        addButtonGroup(remote, profile, "functions", 2)
 
         root.addView(remote, LinearLayout.LayoutParams(-1, -2))
 
@@ -219,6 +220,18 @@ class MainActivity : Activity() {
     ) {
         val buttons = profile.buttons.filter { it.group == group }
         if (buttons.isEmpty()) return
+        val groupLabel = when (group) {
+            "source" -> "مصادر التشغيل"
+            "navigation" -> "التنقل والتحكم"
+            "effects" -> "وظائف التشغيل"
+            "sound" -> "الصوت والمؤقت"
+            "volume" -> "مستوى الصوت"
+            else -> group.uppercase()
+        }
+        val heading = text(groupLabel, 11f, muted, true)
+        val headingParams = LinearLayout.LayoutParams(-1, dp(28))
+        headingParams.topMargin = dp(8)
+        parent.addView(heading, headingParams)
         var index = 0
         while (index < buttons.size) {
             val row = LinearLayout(this).apply {
