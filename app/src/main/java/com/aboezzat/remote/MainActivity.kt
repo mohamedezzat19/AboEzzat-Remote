@@ -372,8 +372,7 @@ class MainActivity : Activity() {
         remote.addView(display, displayParams)
 
         profile.buttons.map { it.group }.distinct().forEach { group ->
-            val columns = if (group == "numeric" || group == "navigation") 3 else 2
-            addButtonGroup(remote, profile, group, columns)
+            addImportedButtonGroup(remote, profile, group)
         }
         root.addView(remote, LinearLayout.LayoutParams(-1, -2))
         card("تعديل اسم الريموت", "تغيير الاسم الظاهر في التطبيق", "✎") {
@@ -394,6 +393,76 @@ class MainActivity : Activity() {
         noteParams.topMargin = dp(16)
         root.addView(note, noteParams)
         setContentView(scroll)
+    }
+
+
+    private fun addImportedButtonGroup(
+        parent: LinearLayout,
+        profile: RemoteProfile,
+        group: String
+    ) {
+        val buttons = profile.buttons.filter { it.group == group }
+        if (buttons.isEmpty()) return
+        val groupLabel = when (group) {
+            "numeric" -> "لوحة الأرقام"
+            "navigation" -> "التنقل والتحكم"
+            "source" -> "مصادر التشغيل"
+            "effects" -> "التكرار والبرمجة"
+            "sound" -> "الصوت والمؤقت"
+            "volume" -> "مستوى الصوت"
+            else -> group.uppercase()
+        }
+        val label = text(groupLabel, 11f, muted, true)
+        val labelParams = LinearLayout.LayoutParams(-1, dp(30))
+        labelParams.topMargin = dp(8)
+        parent.addView(label, labelParams)
+
+        buttons.forEachIndexed { index, button ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            val key = remoteKey(button)
+            val keyParams = LinearLayout.LayoutParams(0, dp(46), 1f)
+            keyParams.setMargins(dp(3), dp(3), dp(6), dp(3))
+            row.addView(key, keyParams)
+
+            val up = Button(this).apply {
+                text = "↑"
+                textSize = 16f
+                isAllCaps = false
+                setTextColor(Color.WHITE)
+                background = background(Color.rgb(47, 67, 91), 12f)
+                isEnabled = index > 0
+                alpha = if (isEnabled) 1f else 0.35f
+                setOnClickListener { reorderImportedButton(profile.id, button.id, -1) }
+            }
+            val down = Button(this).apply {
+                text = "↓"
+                textSize = 16f
+                isAllCaps = false
+                setTextColor(Color.WHITE)
+                background = background(Color.rgb(47, 67, 91), 12f)
+                isEnabled = index < buttons.lastIndex
+                alpha = if (isEnabled) 1f else 0.35f
+                setOnClickListener { reorderImportedButton(profile.id, button.id, 1) }
+            }
+            row.addView(up, LinearLayout.LayoutParams(dp(48), dp(44)))
+            val downParams = LinearLayout.LayoutParams(dp(48), dp(44))
+            downParams.leftMargin = dp(5)
+            row.addView(down, downParams)
+            parent.addView(row, LinearLayout.LayoutParams(-1, -2))
+        }
+    }
+
+    private fun reorderImportedButton(id: String, buttonId: String, direction: Int) {
+        try {
+            val updated = profileRepository.moveImportedButton(id, buttonId, direction)
+            showImportedProfile(updated.id)
+            Toast.makeText(this, "تم تحديث ترتيب الأزرار", Toast.LENGTH_SHORT).show()
+        } catch (error: Exception) {
+            Toast.makeText(this, error.message ?: "تعذر تغيير الترتيب", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showJvc() {
