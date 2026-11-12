@@ -46,8 +46,9 @@ Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 3. Test each command against the RC-EZ38S before marking it verified.
 4. Refine the remote's visual geometry against the manual's remote illustration.
 5. Build a model catalogue for TVs, AC units, fans, and audio systems.
-6. Add profile import/update and custom remote creation.
-7. Add supported Wi-Fi/Bluetooth control integrations.
+6. Import custom remote profiles from JSON into app-private storage; imported IR commands are always reset to unverified until independently tested. (Import flow implemented.)
+7. Add profile export/edit and custom remote creation.
+8. Add supported Wi-Fi/Bluetooth control integrations.
 
 ## Accuracy policy
 
