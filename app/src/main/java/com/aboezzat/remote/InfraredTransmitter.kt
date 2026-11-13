@@ -97,16 +97,6 @@ object NecCandidateEncoder {
 
     const val CARRIER_FREQUENCY_HZ = 38_000
 
-    val JVC_RC_EZ38S_CANDIDATES: List<Candidate> = listOf(
-        Candidate("power", 0x03FC14EBL),
-        Candidate("volume_up", 0x03FC02FDL),
-        Candidate("volume_down", 0x03FC03FCL),
-        Candidate("muting", 0x03FC0DF2L),
-        Candidate("play", 0x03FC12EDL),
-        Candidate("next", 0x03FC15EAL),
-        Candidate("previous", 0x03FC16E9L),
-        Candidate("tuner_band", 0x03FC21DEL)
-    )
 
     /**
      * Creates an alternating mark/space pattern suitable for ConsumerIrManager.
