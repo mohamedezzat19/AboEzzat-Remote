@@ -661,68 +661,15 @@ class MainActivity : Activity() {
     }
 
     private fun showJvcIrCandidateTests() {
-        if (!irTransmitter.isAvailable()) {
-            AlertDialog.Builder(this).setTitle("مرسل IR غير متاح")
-                .setMessage("الهاتف لا يحتوي على مرسل أشعة تحت الحمراء.")
-                .setPositiveButton("حسناً", null).show()
-            return
-        }
-        val supportedButtonIds = profileRepository.loadJvcCassette().buttons.map { it.id }.toSet()
-        val candidates = NecCandidateEncoder.JVC_RC_EZ38S_CANDIDATES
-            .filter { it.buttonId in supportedButtonIds }
-        if (candidates.isEmpty()) {
-            Toast.makeText(this, "لا توجد أكواد مرشحة لأزرار هذا الريموت", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val labels = candidates.map { candidate ->
-            val title = when (candidate.buttonId) {
-                "power" -> "Power"
-                "volume_up" -> "Volume +"
-                "volume_down" -> "Volume −"
-                "muting" -> "Mute"
-                "play" -> "Play"
-                "next" -> "Next"
-                "previous" -> "Previous"
-                "tuner_band" -> "Band"
-                else -> candidate.buttonId
-            }
-            val saved = getSharedPreferences("jvc_ir_tests", MODE_PRIVATE)
-                .getBoolean("verified_${candidate.buttonId}", false)
-            "$title  •  ${if (saved) "استجابة أكدها المستخدم" else "مرشح غير مختبر"}"
-        }.toTypedArray()
-        AlertDialog.Builder(this).setTitle("اختر الزر المراد اختباره")
-            .setItems(labels) { _, which ->
-                val candidate = candidates[which]
-                val title = labels[which].substringBefore("  •")
-                irTransmitter.send(
-                    NecCandidateEncoder.CARRIER_FREQUENCY_HZ,
-                    NecCandidateEncoder.encode32(candidate.hexCode)
-                ).fold(
-                    onSuccess = {
-                        AlertDialog.Builder(this).setTitle("اختبار تجريبي: $title")
-                            .setMessage("أرسلنا مرشح NEC ${"0x%08X".format(candidate.hexCode)} بتردد 38kHz. تنبيه: هذا ليس كوداً موثقاً لجهاز JVC RC-EZ38S، ومرجع JVC يستخدم توقيتات بروتوكول مختلفة. راقب الجهاز؛ لا تحفظه إلا إذا نفّذ الوظيفة المطلوبة بالضبط.")
-                            .setPositiveButton("الجهاز استجاب - احفظ كتجربة") { _, _ ->
-                                getSharedPreferences("jvc_ir_tests", MODE_PRIVATE).edit()
-                                    .putBoolean("verified_${candidate.buttonId}", true)
-                                    .putLong("code_${candidate.buttonId}", candidate.hexCode)
-                                    .apply()
-                                Toast.makeText(this, "تم حفظ الكود كتجربة بناءً على تأكيدك لاستجابة الجهاز", Toast.LENGTH_LONG).show()
-                                showJvc()
-                            }
-                            .setNegativeButton("لم يعمل") { _, _ ->
-                                getSharedPreferences("jvc_ir_tests", MODE_PRIVATE).edit()
-                                    .putBoolean("verified_${candidate.buttonId}", false)
-                                    .remove("code_${candidate.buttonId}").apply()
-                                Toast.makeText(this, "لم يتم حفظ المرشح؛ لم يتغير زر الريموت", Toast.LENGTH_SHORT).show()
-                            }
-                            .setNeutralButton("اختبار زر آخر") { _, _ -> showJvcIrCandidateTests() }
-                            .show()
-                    },
-                    onFailure = { error ->
-                        Toast.makeText(this, "تعذر إرسال كود الاختبار: ${error.message}", Toast.LENGTH_LONG).show()
-                    }
-                )
-            }.setNegativeButton("إلغاء", null).show()
+        AlertDialog.Builder(this)
+            .setTitle("أكواد JVC الأصلية غير متوفرة")
+            .setMessage(
+                "اختبار NEC السابق لم يستجب له جهاز RC-EZ38S، لذلك أوقفنا إرسال هذا المرشح ولن نعيد تجربته.\n\n" +
+                "بروتوكول JVC القياسي أصبح جاهزاً في التطبيق، لكننا ما زلنا نحتاج عنوان الجهاز وأكواد الأزرار الفعلية من الريموت RM-SRCEZ38A.\n\n" +
+                "الخطوة الصحيحة: التقاط إشارة الريموت الأصلي بمستقبل IR خارجي (مثل مستقبل IR مع Arduino أو USB IR يدعم الاستقبال)، ثم إدخال القيم المستخرجة في ملف الريموت. هاتفك يرسل IR فقط ولا يستطيع استقبال الإشارة."
+            )
+            .setPositiveButton("حسناً", null)
+            .show()
     }
 
     private fun addButtonGroup(
