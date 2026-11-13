@@ -696,7 +696,7 @@ class MainActivity : Activity() {
 
         // A reproducible, non-repeating sample across the complete 16-bit JVC
         // address/command space. This is a discovery sample, not a guaranteed code list.
-        val random = Random(0x38E2L)
+        val random = Random(System.currentTimeMillis() xor buttonId.hashCode().toLong())
         val seen = HashSet<Int>()
         val candidates = ArrayList<Pair<Int, Int>>(1000)
         while (candidates.size < 1000) {
