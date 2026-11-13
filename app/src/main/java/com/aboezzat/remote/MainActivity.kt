@@ -8,6 +8,8 @@ import android.graphics.drawable.GradientDrawable
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import java.io.ByteArrayOutputStream
 import android.widget.Button
@@ -16,6 +18,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import java.util.Random
 
 class MainActivity : Activity() {
     private val bg = Color.rgb(10, 16, 30)
@@ -27,6 +30,14 @@ class MainActivity : Activity() {
     private lateinit var irTransmitter: InfraredTransmitter
     private lateinit var profileRepository: RemoteProfileRepository
     private var pendingExportProfileId: String? = null
+    private val irHandler = Handler(Looper.getMainLooper())
+    private var scanRunnable: Runnable? = null
+    private var scanDialog: AlertDialog? = null
+    private var scanStatusView: TextView? = null
+    private var scanTargetButtonId: String? = null
+    private var scanCandidates: List<Pair<Int, Int>> = emptyList()
+    private var scanIndex = 0
+    private var lastSentJvcCode: Pair<Int, Int>? = null
 
     companion object {
         private const val REQUEST_IMPORT_PROFILE = 4102
@@ -640,36 +651,192 @@ class MainActivity : Activity() {
         displayParams.bottomMargin = dp(16)
         remote.addView(display, displayParams)
 
-        addButtonGroup(remote, profile, "source", 2)
-        addButtonGroup(remote, profile, "navigation", 3)
-        addButtonGroup(remote, profile, "effects", 3)
-        addButtonGroup(remote, profile, "sound", 3)
-        addNumericPad(remote, profile)
-        addButtonGroup(remote, profile, "volume", 2)
+        addJvcBasicRow(remote, profile, "مصدر USB", listOf("usb"))
+        addJvcBasicRow(remote, profile, "الراديو", listOf("tuner_band"))
+        addJvcBasicRow(remote, profile, "التنقل (USB / محطات الراديو)", listOf("previous", "next"))
+        addJvcBasicRow(remote, profile, "مستوى الصوت", listOf("volume_down", "volume_up"))
 
         root.addView(remote, LinearLayout.LayoutParams(-1, -2))
 
-        val stateText = "تخطيط الأزرار مستند إلى دليل JVC RC-EZ38S والريموت RM-SRCEZ38A. أكواد الأشعة تحت الحمراء لم تُوثّق أو تُختبر بعد؛ لذلك الأزرار لن ترسل أوامر حتى تتوفر أكواد مؤكدة."
+        val stateText = "اختبار JVC تجريبي: اختر الوظيفة وابدأ البحث. عند استجابة المسجل اضغط «نجح - حفظ» فوراً. الهاتف لا يستطيع اكتشاف استجابة المسجل تلقائياً."
         val note = text(stateText, 12f, muted)
         val np = LinearLayout.LayoutParams(-1, -2)
         np.topMargin = dp(16)
         root.addView(note, np)
-        card("اختبار أكواد IR المتاحة", "اختبر كل زر واحفظ الكود فقط بعد استجابة الجهاز", "⌁") {
+        card("البحث التلقائي عن أكواد الأزرار", "1000 محاولة أولية، كود كل ثانيتين، مع حفظ الكود عند نجاحه", "⌁") {
             showJvcIrCandidateTests()
         }
         setContentView(scroll)
     }
 
     private fun showJvcIrCandidateTests() {
+        val targets = listOf(
+            "power" to "Power تشغيل / إيقاف",
+            "usb" to "USB",
+            "tuner_band" to "الراديو TUNER / BAND",
+            "volume_up" to "رفع الصوت",
+            "volume_down" to "خفض الصوت",
+            "previous" to "السابق",
+            "next" to "التالي"
+        )
         AlertDialog.Builder(this)
-            .setTitle("أكواد JVC الأصلية غير متوفرة")
-            .setMessage(
-                "اختبار NEC السابق لم يستجب له جهاز RC-EZ38S، لذلك أوقفنا إرسال هذا المرشح ولن نعيد تجربته.\n\n" +
-                "بروتوكول JVC القياسي أصبح جاهزاً في التطبيق، لكننا ما زلنا نحتاج عنوان الجهاز وأكواد الأزرار الفعلية من الريموت RM-SRCEZ38A.\n\n" +
-                "الخطوة الصحيحة: التقاط إشارة الريموت الأصلي بمستقبل IR خارجي (مثل مستقبل IR مع Arduino أو USB IR يدعم الاستقبال)، ثم إدخال القيم المستخرجة في ملف الريموت. هاتفك يرسل IR فقط ولا يستطيع استقبال الإشارة."
-            )
-            .setPositiveButton("حسناً", null)
+            .setTitle("اختار الزر اللي هنبحث عن كوده")
+            .setItems(targets.map { it.second }.toTypedArray()) { _, which ->
+                startJvcScan(targets[which].first)
+            }
+            .setNegativeButton("إلغاء", null)
             .show()
+    }
+
+    private fun buildJvcScanCandidates(buttonId: String): List<Pair<Int, Int>> {
+        val prefs = getSharedPreferences("jvc_ir_tests", MODE_PRIVATE)
+        val knownAddress = if (buttonId != "power" && prefs.getBoolean("jvc_verified_power", false))
+            prefs.getInt("jvc_address_power", -1).takeIf { it in 0..255 } else null
+        if (knownAddress != null) return (0..255).map { command -> knownAddress to command }
+
+        // A reproducible, non-repeating sample across the complete 16-bit JVC
+        // address/command space. This is a discovery sample, not a guaranteed code list.
+        val random = Random(0x38E2L)
+        val seen = HashSet<Int>()
+        val candidates = ArrayList<Pair<Int, Int>>(1000)
+        while (candidates.size < 1000) {
+            val address = random.nextInt(256)
+            val command = random.nextInt(256)
+            val key = (address shl 8) or command
+            if (seen.add(key)) candidates.add(address to command)
+        }
+        return candidates
+    }
+
+    private fun startJvcScan(buttonId: String) {
+        if (!irTransmitter.isAvailable()) {
+            Toast.makeText(this, "هذا الهاتف لا يحتوي على مرسل IR مدمج", Toast.LENGTH_LONG).show()
+            return
+        }
+        scanTargetButtonId = buttonId
+        scanCandidates = buildJvcScanCandidates(buttonId)
+        scanIndex = 0
+        lastSentJvcCode = null
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(22), dp(16), dp(22), dp(8))
+        }
+        scanStatusView = text("جاهز لبدء الاختبار", 15f, Color.WHITE, true)
+        layout.addView(scanStatusView, LinearLayout.LayoutParams(-1, dp(64)))
+        val details = text(
+            "وجّه أعلى الهاتف ناحية حساس المسجل وثبّت الهاتف. كل كود يُرسل مرة واحدة ثم ننتظر ثانيتين. قد تستجيب بعض الأكواد لوظائف أخرى؛ راقب المسجل واضغط حفظ فور حدوث الوظيفة المطلوبة.",
+            12f, muted
+        )
+        layout.addView(details, LinearLayout.LayoutParams(-1, -2))
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("بحث IR: ${targetsLabel(buttonId)}")
+            .setView(layout)
+            .setPositiveButton("نجح - حفظ الكود", null)
+            .setNeutralButton("إيقاف", null)
+            .setNegativeButton("إلغاء الاختبار", null)
+            .create()
+        scanDialog = dialog
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val code = lastSentJvcCode
+                if (code == null) {
+                    Toast.makeText(this, "استنى لحد ما أول كود يتبعت", Toast.LENGTH_SHORT).show()
+                } else {
+                    val id = scanTargetButtonId ?: return@setOnClickListener
+                    getSharedPreferences("jvc_ir_tests", MODE_PRIVATE).edit()
+                        .putBoolean("jvc_verified_$id", true)
+                        .putInt("jvc_address_$id", code.first)
+                        .putInt("jvc_command_$id", code.second)
+                        .apply()
+                    stopJvcScan()
+                    dialog.dismiss()
+                    Toast.makeText(
+                        this,
+                        "اتحفظ كود ${targetsLabel(id)}: العنوان 0x${code.first.toString(16).uppercase().padStart(2, '0')} والأمر 0x${code.second.toString(16).uppercase().padStart(2, '0')}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    showJvc()
+                }
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                stopJvcScan()
+                dialog.dismiss()
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
+                stopJvcScan()
+                dialog.dismiss()
+            }
+        }
+        dialog.setOnDismissListener { stopJvcScan() }
+        dialog.show()
+        sendNextJvcCandidate()
+    }
+
+    private fun targetsLabel(id: String): String = when (id) {
+        "power" -> "Power"
+        "usb" -> "USB"
+        "tuner_band" -> "الراديو"
+        "volume_up" -> "رفع الصوت"
+        "volume_down" -> "خفض الصوت"
+        "previous" -> "السابق"
+        "next" -> "التالي"
+        else -> id
+    }
+
+    private fun sendNextJvcCandidate() {
+        if (scanIndex >= scanCandidates.size) {
+            scanStatusView?.text = "انتهت المحاولات (${scanCandidates.size}). لم يتم حفظ كود. يمكنك إعادة البحث."
+            scanRunnable = null
+            return
+        }
+        val code = scanCandidates[scanIndex]
+        lastSentJvcCode = code
+        val sent = irTransmitter.send(
+            JvcProtocolEncoder.CARRIER_FREQUENCY_HZ,
+            JvcProtocolEncoder.encode(code.first, code.second)
+        )
+        scanStatusView?.text = "المحاولة ${scanIndex + 1} من ${scanCandidates.size}\nالعنوان: 0x${code.first.toString(16).uppercase().padStart(2, '0')}  •  الأمر: 0x${code.second.toString(16).uppercase().padStart(2, '0')}\n${if (sent.isSuccess) "تم الإرسال — انتظر الاستجابة" else "فشل الإرسال: ${sent.exceptionOrNull()?.message}"}"
+        scanIndex++
+        if (sent.isSuccess && scanIndex < scanCandidates.size) {
+            val next = Runnable { sendNextJvcCandidate() }
+            scanRunnable = next
+            irHandler.postDelayed(next, 2_000L)
+        } else if (scanIndex >= scanCandidates.size) {
+            scanStatusView?.text = "انتهت المحاولات (${scanCandidates.size}). لم يتم حفظ كود."
+        } else {
+            scanRunnable = null
+        }
+    }
+
+    private fun stopJvcScan() {
+        scanRunnable?.let { irHandler.removeCallbacks(it) }
+        scanRunnable = null
+        scanDialog = null
+    }
+
+    private fun addJvcBasicRow(
+        parent: LinearLayout,
+        profile: RemoteProfile,
+        label: String,
+        ids: List<String>
+    ) {
+        val heading = text(label, 12f, muted, true)
+        val headingParams = LinearLayout.LayoutParams(-1, dp(28))
+        headingParams.topMargin = dp(10)
+        parent.addView(heading, headingParams)
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        val buttons = ids.mapNotNull { id -> profile.buttons.firstOrNull { it.id == id } }
+        buttons.forEach { button ->
+            val params = LinearLayout.LayoutParams(0, dp(52), 1f)
+            params.setMargins(dp(4), dp(4), dp(4), dp(4))
+            row.addView(remoteKey(button), params)
+        }
+        parent.addView(row, LinearLayout.LayoutParams(-1, -2))
     }
 
     private fun addButtonGroup(
@@ -850,19 +1017,27 @@ class MainActivity : Activity() {
     }
 
     private fun sendRemoteButton(button: RemoteButtonProfile) {
-        if (!button.verified || button.carrierFrequencyHz == null || button.patternMicros == null) {
+        if (showingJvc) {
             val prefs = getSharedPreferences("jvc_ir_tests", MODE_PRIVATE)
-            val savedCode = if (showingJvc && prefs.getBoolean("verified_${button.id}", false))
-                prefs.getLong("code_${button.id}", -1L).takeIf { it >= 0L } else null
-            if (savedCode != null) {
-                irTransmitter.send(NecCandidateEncoder.CARRIER_FREQUENCY_HZ,
-                    NecCandidateEncoder.encode32(savedCode)).fold(
-                    onSuccess = { Toast.makeText(this, "تم إرسال أمر ${button.description}", Toast.LENGTH_SHORT).show() },
-                    onFailure = { error -> Toast.makeText(this, "تعذر إرسال الأمر: ${error.message}", Toast.LENGTH_LONG).show() }
-                )
-                return
+            if (prefs.getBoolean("jvc_verified_${button.id}", false)) {
+                val address = prefs.getInt("jvc_address_${button.id}", -1)
+                val command = prefs.getInt("jvc_command_${button.id}", -1)
+                if (address in 0..255 && command in 0..255) {
+                    irTransmitter.send(
+                        JvcProtocolEncoder.CARRIER_FREQUENCY_HZ,
+                        JvcProtocolEncoder.encode(address, command)
+                    ).fold(
+                        onSuccess = { Toast.makeText(this, "تم إرسال أمر ${button.description}", Toast.LENGTH_SHORT).show() },
+                        onFailure = { error -> Toast.makeText(this, "تعذر إرسال الأمر: ${error.message}", Toast.LENGTH_LONG).show() }
+                    )
+                    return
+                }
             }
-            Toast.makeText(this, "${button.description}: كود IR موثوق غير متوفر. استخدم اختبار الأكواد أولاً.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "${button.description}: لم يتم العثور على كود بعد. افتح البحث التلقائي لهذا الزر.", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (!button.verified || button.carrierFrequencyHz == null || button.patternMicros == null) {
+            Toast.makeText(this, "${button.description}: كود IR موثوق غير متوفر.", Toast.LENGTH_LONG).show()
             return
         }
         irTransmitter.send(button.carrierFrequencyHz, button.patternMicros).fold(
