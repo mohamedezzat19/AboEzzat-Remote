@@ -202,23 +202,6 @@
     }
   ],
   "commands": {},
-  "unverifiedNecCandidates": {
-    "protocol": "NEC",
-    "carrierFrequencyHz": 38000,
-    "status": "unverified_do_not_transmit",
-    "bitOrder": "least_significant_bit_first",
-    "codes": {
-      "power": "0x03FC14EB",
-      "volume_up": "0x03FC02FD",
-      "volume_down": "0x03FC03FC",
-      "muting": "0x03FC0DF2",
-      "play": "0x03FC12ED",
-      "next": "0x03FC15EA",
-      "previous": "0x03FC16E9",
-      "tuner_band": "0x03FC21DE"
-    },
-    "warning": "User-supplied NEC candidates only. They are not confirmed for JVC RC-EZ38S / RM-SRCEZ38A. Do not enable or transmit without exact-device testing."
-  },
   "irProtocol": {
     "family": "JVC pulse-interval modulation",
     "carrierFrequencyHz": 37900,
